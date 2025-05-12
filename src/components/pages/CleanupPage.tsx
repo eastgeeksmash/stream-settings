@@ -1,4 +1,5 @@
-import React from 'react';
+import type React from 'react';
+import { Button } from '../ui/button';
 
 export const CleanupPage: React.FC = () => {
   return (
@@ -7,19 +8,19 @@ export const CleanupPage: React.FC = () => {
       
       <ul className="space-y-3">
         <li>
-          <button className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded transition-colors">
+          <Button type="button" className="w-full" variant="default">
             Discordログアウト
-          </button>
+          </Button>
         </li>
         <li>
-          <button className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded transition-colors">
+          <Button type="button" className="w-full" variant="default">
             Chromeログアウト
-          </button>
+          </Button>
         </li>
         <li>
-          <button className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded transition-colors">
+          <Button type="button" className="w-full" variant="default">
             ダウンロードディレクトリを削除
-          </button>
+          </Button>
         </li>
       </ul>
     </div>

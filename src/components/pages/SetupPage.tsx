@@ -1,4 +1,5 @@
-import React from 'react';
+import type React from 'react';
+import { Button } from '../ui/button';
 
 export const SetupPage: React.FC = () => {
   return (
@@ -6,22 +7,24 @@ export const SetupPage: React.FC = () => {
       <h2 className="text-2xl font-bold mb-4">Setup</h2>
       <ul className="space-y-3">
         <li>
-          <button className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded transition-colors">
+          <Button type="button" className="w-full" variant="default">
             ネットワークをプライベート化
-          </button>
+          </Button>
         </li>
         <li>
-          <button className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded transition-colors">
+          <Button type="button" className="w-full" variant="default">
             OBSの初期設定実施
-          </button>
+          </Button>
         </li>
         <li>
-          <button 
-            className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded transition-colors"
+          <Button 
+            type="button"
+            className="w-full"
+            variant="default"
             title="高パフォーマンスモードに変更、スリープモード無効化、電源ボタンのロックを行います"
           >
             電源設定の変更
-          </button>
+          </Button>
         </li>
       </ul>
     </div>

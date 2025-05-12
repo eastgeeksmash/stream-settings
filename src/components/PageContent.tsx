@@ -1,5 +1,5 @@
-import React from 'react';
-import { Page } from '../types/page';
+import type React from 'react';
+import type { Page } from '../types/page';
 import { SetupPage } from './pages/SetupPage';
 import { CleanupPage } from './pages/CleanupPage';
 import { SettingsPage } from './pages/SettingsPage';
