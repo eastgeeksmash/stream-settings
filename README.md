@@ -1,19 +1,7 @@
-# stream-settings
-stream-settingsは、配信用PCに必要な設定のセットアップ及びクリーンアップを自動化するバッチソフトウェアです。
+# Tauri + React + Typescript
 
-## 使用方法
+This template should help get you started developing with Tauri, React and Typescript in Vite.
 
-### ダウンロード
+## Recommended IDE Setup
 
-最新のリリースは[GitHub Releases](https://github.com/eastgeeksmash/stream-settings/releases)からダウンロードできます。  
-現在はWindows向けのバイナリのみ提供しています。
-
-
-### Setup
-
-#### フラグの説明
-
-
-### Cleanup
-
-#### フラグの説明
+- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)

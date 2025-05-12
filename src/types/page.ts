@@ -1,0 +1,1 @@
+export type Page = 'setup' | 'cleanup' | 'settings' | 'about'; 
