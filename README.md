@@ -1,7 +1,34 @@
-# Tauri + React + Typescript
+# Stream Settings
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+## 概要
 
-## Recommended IDE Setup
+Stream Settingsは、プロダクション環境向けの設定自動化デスクトップアプリケーションです。  
+Rust言語とTauriフレームワークを使用して開発された軽量かつ高性能なツールで、配信に必要な様々な設定を自動的に行います。  
+主なターゲットとして、プロダクション環境で使用される貸与PCなどを想定しています。
 
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+## 主な機能
+
+- **ネットワーク設定**: ネットワークをプライベートモードに自動設定
+- **電源設定**: 高パフォーマンスモード設定、スリープ無効化、電源ボタンのロック
+- **NVIDIA設定**: GPUパフォーマンスの最適化（NVIDIA GPUのみ）
+- **クリーンアップ**: Discord/Chromeのログアウト、ダウンロードディレクトリの整理
+
+## 開発情報
+
+このアプリケーションはEastGeekSmashによって開発されたオープンソースのフリーソフトウェアです。誰でも自由に使用、改変、再配布が可能です。  
+詳細については[ライセンス](./LICENSE)をご確認ください。
+
+## 技術スタック
+
+- **バックエンド**: Rust
+- **フロントエンド**: React + TypeScript
+- **フレームワーク**: Tauri
+- **UI**: TailwindCSS + shadcdn
+
+## 貢献方法
+
+プロジェクトへの貢献を歓迎します。バグ報告、機能リクエスト、プルリクエストなどはGitHubリポジトリを通じてお願いします。
+
+## ライセンス
+
+MIT License
