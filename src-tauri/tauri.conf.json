@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "stream-settings",
+  "productName": "Stream Settings",
   "version": "0.1.0",
-  "identifier": "com.stream-settings.app",
+  "identifier": "com.eastgeeksmash.stream-settings",
   "build": {
     "beforeDevCommand": "bun run dev",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "stream-settings",
+        "title": "Stream Settings",
         "width": 800,
         "height": 600
       }

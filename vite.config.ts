@@ -4,7 +4,6 @@ import react from "@vitejs/plugin-react";
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
-// @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
