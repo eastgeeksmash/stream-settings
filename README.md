@@ -1,0 +1,2 @@
+# stream-settings
+stream-settingsは、配信用PCに必要な設定のセットアップ及びクリーンアップを自動化するバッチソフトウェアです。
