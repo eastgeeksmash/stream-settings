@@ -81,59 +81,6 @@ fn change_power_settings() -> Result<(), String> {
 }
 
 #[tauri::command]
-fn change_nvidia_settings() -> Result<(), String> {
-    // NVIDIA Control Panelの設定を変更
-    // TODO: NVIDIA以外のGPUの場合無視する
-
-    // 電源管理を最大電力へ変更
-    use std::process::Command;
-    
-    // NVIDIAドライバーが存在するか確認
-    let nvidia_check = Command::new("powershell")
-        .args(&[
-            "-Command",
-            "Get-WmiObject Win32_VideoController | Where-Object { $_.Name -like '*NVIDIA*' }"
-        ])
-        .output()
-        .map_err(|e| e.to_string())?;
-    
-    // NVIDIAドライバーが見つからない場合は早期リターン
-    if nvidia_check.stdout.is_empty() {
-        return Ok(());
-    }
-    
-    // 電源管理モードを「最大のパフォーマンス」に設定
-    let power_management = Command::new("powershell")
-        .args(&[
-            "-Command",
-            "nvidia-smi -pm 1"
-        ])
-        .output()
-        .map_err(|e| e.to_string())?;
-    
-    if !power_management.status.success() {
-        let error_message = String::from_utf8_lossy(&power_management.stderr);
-        return Err(format!("NVIDIAの電源管理設定の変更に失敗しました: {}", error_message));
-    }
-    
-    // パフォーマンスモードを最大に設定
-    let performance_mode = Command::new("powershell")
-        .args(&[
-            "-Command",
-            "nvidia-smi --auto-boost-default=0"
-        ])
-        .output()
-        .map_err(|e| e.to_string())?;
-    
-    if !performance_mode.status.success() {
-        let error_message = String::from_utf8_lossy(&performance_mode.stderr);
-        return Err(format!("NVIDIAのパフォーマンスモード設定の変更に失敗しました: {}", error_message));
-    }
-    
-    Ok(())
-}
-
-#[tauri::command]
 fn logout_chrome() -> Result<(), String> {
     use std::process::Command;
     
@@ -230,8 +177,7 @@ pub fn run() {
             logout_chrome,
             delete_download_directory,
             change_power_settings,
-            make_network_private,
-            change_nvidia_settings
+            make_network_private
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
