@@ -20,7 +20,116 @@ fn make_network_private() -> Result<(), String> {
 
 #[tauri::command]
 fn change_power_settings() -> Result<(), String> {
-    // TODO: 電源設定の変更
+    use std::process::Command;
+    
+    // 高パフォーマンスモードに変更
+    let power_scheme = Command::new("powershell")
+        .args(&[
+            "-Command",
+            "powercfg /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c"
+        ])
+        .output()
+        .map_err(|e| e.to_string())?;
+    
+    if !power_scheme.status.success() {
+        let error_message = String::from_utf8_lossy(&power_scheme.stderr);
+        return Err(format!("電源プランの変更に失敗しました: {}", error_message));
+    }
+    
+    // スリープを無効化
+    let disable_sleep = Command::new("powershell")
+        .args(&[
+            "-Command",
+            "powercfg /change standby-timeout-ac 0"
+        ])
+        .output()
+        .map_err(|e| e.to_string())?;
+    
+    if !disable_sleep.status.success() {
+        let error_message = String::from_utf8_lossy(&disable_sleep.stderr);
+        return Err(format!("スリープ設定の変更に失敗しました: {}", error_message));
+    }
+    
+    // 電源ボタンの動作を「何もしない」に設定
+    let power_button = Command::new("powershell")
+        .args(&[
+            "-Command",
+            "powercfg -setacvalueindex SCHEME_CURRENT 4f971e89-eebd-4455-a8de-9e59040e7347 7648efa3-dd9c-4e3e-b566-50f929386280 0"
+        ])
+        .output()
+        .map_err(|e| e.to_string())?;
+    
+    if !power_button.status.success() {
+        let error_message = String::from_utf8_lossy(&power_button.stderr);
+        return Err(format!("電源ボタン設定の変更に失敗しました: {}", error_message));
+    }
+    
+    // 設定を適用
+    let apply_settings = Command::new("powershell")
+        .args(&[
+            "-Command",
+            "powercfg -setactive scheme_current"
+        ])
+        .output()
+        .map_err(|e| e.to_string())?;
+    
+    if !apply_settings.status.success() {
+        let error_message = String::from_utf8_lossy(&apply_settings.stderr);
+        return Err(format!("電源設定の適用に失敗しました: {}", error_message));
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn change_nvidia_settings() -> Result<(), String> {
+    // NVIDIA Control Panelの設定を変更
+    // TODO: NVIDIA以外のGPUの場合無視する
+
+    // 電源管理を最大電力へ変更
+    use std::process::Command;
+    
+    // NVIDIAドライバーが存在するか確認
+    let nvidia_check = Command::new("powershell")
+        .args(&[
+            "-Command",
+            "Get-WmiObject Win32_VideoController | Where-Object { $_.Name -like '*NVIDIA*' }"
+        ])
+        .output()
+        .map_err(|e| e.to_string())?;
+    
+    // NVIDIAドライバーが見つからない場合は早期リターン
+    if nvidia_check.stdout.is_empty() {
+        return Ok(());
+    }
+    
+    // 電源管理モードを「最大のパフォーマンス」に設定
+    let power_management = Command::new("powershell")
+        .args(&[
+            "-Command",
+            "nvidia-smi -pm 1"
+        ])
+        .output()
+        .map_err(|e| e.to_string())?;
+    
+    if !power_management.status.success() {
+        let error_message = String::from_utf8_lossy(&power_management.stderr);
+        return Err(format!("NVIDIAの電源管理設定の変更に失敗しました: {}", error_message));
+    }
+    
+    // パフォーマンスモードを最大に設定
+    let performance_mode = Command::new("powershell")
+        .args(&[
+            "-Command",
+            "nvidia-smi --auto-boost-default=0"
+        ])
+        .output()
+        .map_err(|e| e.to_string())?;
+    
+    if !performance_mode.status.success() {
+        let error_message = String::from_utf8_lossy(&performance_mode.stderr);
+        return Err(format!("NVIDIAのパフォーマンスモード設定の変更に失敗しました: {}", error_message));
+    }
+    
     Ok(())
 }
 
@@ -75,14 +184,15 @@ fn logout_discord() -> Result<(), String> {
         .join("leveldb");
     
     if leveldb_path.exists() {
-        let del_output = Command::new("cmd")
-            .args(&["/C", &format!("del \"{}\\*.*\" /q", leveldb_path.display())])
-            .output()
-            .map_err(|e| e.to_string())?;
-        
-        if !del_output.status.success() {
-            let error_message = String::from_utf8_lossy(&del_output.stderr);
-            return Err(format!("Discordデータベースファイルの削除に失敗しました: {}", error_message));
+        // ディレクトリ内のファイルを列挙して削除
+        for entry in std::fs::read_dir(&leveldb_path).map_err(|e| e.to_string())? {
+            let entry = entry.map_err(|e| e.to_string())?;
+            let path = entry.path();
+            
+            if path.is_file() {
+                std::fs::remove_file(&path)
+                    .map_err(|e| format!("Discordデータベースファイルの削除に失敗しました: {}", e))?;
+            }
         }
     }
     Ok(())
@@ -115,7 +225,14 @@ fn delete_download_directory() -> Result<(), String> {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![logout_discord, logout_chrome, delete_download_directory, change_power_settings, make_network_private])
+        .invoke_handler(tauri::generate_handler![
+            logout_discord,
+            logout_chrome,
+            delete_download_directory,
+            change_power_settings,
+            make_network_private,
+            change_nvidia_settings
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

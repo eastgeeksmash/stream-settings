@@ -1,7 +1,8 @@
 import type React from 'react';
 import { Button } from '../ui/button';
-
+import { toast } from "sonner"
 import { invoke } from '@tauri-apps/api/core';
+
 
 export const SetupPage: React.FC = () => {
   return (
@@ -9,13 +10,20 @@ export const SetupPage: React.FC = () => {
       <h2 className="text-2xl font-bold mb-4">Setup</h2>
       <ul className="space-y-3">
         <li>
-          <Button type="button" className="w-full" variant="default" onClick={() => {
+          <Button type="button" className="w-full" variant="default" onClick={(event) => {
+            const button = event.currentTarget as HTMLButtonElement;
+            button.disabled = true;
+            
             invoke('make_network_private')
               .then(() => {
-                console.log('ネットワークのプライベート化が完了しました');
+                toast.success("ネットワークのプライベート化が完了しました");
               })
               .catch((error: Error) => {
-                console.error('ネットワークのプライベート化に失敗しました:', error);
+                console.error(error);
+                toast.error(`ネットワークのプライベート化に失敗しました: ${error.message}`);
+              })
+              .finally(() => {
+                button.disabled = false;
               });
           }}>
             ネットワークをプライベート化
@@ -35,10 +43,11 @@ export const SetupPage: React.FC = () => {
             onClick={() => {
               invoke('change_power_settings')
                 .then(() => {
-                  console.log('電源設定の変更が完了しました');
+                  toast.success("電源設定の変更が完了しました");
                 })
                 .catch((error: Error) => {
-                  console.error('電源設定の変更に失敗しました:', error);
+                  console.error(error);
+                  toast.error(`電源設定の変更に失敗しました: ${error.message}`);
                 });
             }}
           >

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { PageContent } from "./components/PageContent";
 import "./App.css";
+import { Toaster } from "@/components/ui/sonner"
 
 type Page = 'setup' | 'cleanup' | 'settings' | 'about';
 
@@ -9,6 +10,8 @@ function App() {
 
   return (
     <main className="container">
+      <Toaster />
+      
       <div className="flex h-screen">
         {/* サイドバー */}
         <div className="w-64 bg-slate-800 text-white p-4">

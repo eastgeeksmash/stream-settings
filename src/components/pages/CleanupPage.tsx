@@ -1,6 +1,7 @@
 import type React from 'react';
 import { Button } from '../ui/button';
 import { invoke } from '@tauri-apps/api/core';
+import { toast } from 'sonner';
 
 export const CleanupPage: React.FC = () => {
   return (
@@ -9,39 +10,60 @@ export const CleanupPage: React.FC = () => {
       
       <ul className="space-y-3">
         <li>
-          <Button type="button" className="w-full" variant="default" onClick={() => {
+          <Button type="button" className="w-full" variant="default" onClick={(event) => {
+            const button = event.currentTarget as HTMLButtonElement;
+            button.disabled = true;
+
             invoke('logout_discord')
               .then(() => {
-                console.log('Discordのログアウトが完了しました');
+                toast.success('Discordのログアウトが完了しました');
               })
               .catch((error: Error) => {
-                console.error('Discordのログアウトに失敗しました:', error);
+                console.error(error);
+                toast.error(`Discordのログアウトに失敗しました: ${error.message}`);
+              })
+              .finally(() => {
+                button.disabled = false;
               });
           }}>
             Discordログアウト
           </Button>
         </li>
         <li>
-          <Button type="button" className="w-full" variant="default" onClick={() => {
+          <Button type="button" className="w-full" variant="default" onClick={(event) => {
+            const button = event.currentTarget as HTMLButtonElement;
+            button.disabled = true;
+
             invoke('logout_chrome')
               .then(() => {
-                console.log('Chromeのログアウトが完了しました');
+                toast.success('Chromeのログアウトが完了しました');
               })
               .catch((error: Error) => {
-                console.error('Chromeのログアウトに失敗しました:', error);
+                console.error(error);
+                toast.error(`Chromeのログアウトに失敗しました: ${error.message}`);
+              })
+              .finally(() => {
+                button.disabled = false;
               });
           }}>
             Chromeログアウト
           </Button>
         </li>
         <li>
-          <Button type="button" className="w-full" variant="default" onClick={() => {
+          <Button type="button" className="w-full" variant="default" onClick={(event) => {
+            const button = event.currentTarget as HTMLButtonElement;
+            button.disabled = true;
+
             invoke('delete_download_directory')
               .then(() => {
-                console.log('ダウンロードディレクトリの削除が完了しました');
+                toast.success('ダウンロードディレクトリの削除が完了しました');
               })
               .catch((error: Error) => {
-                console.error('ダウンロードディレクトリの削除に失敗しました:', error);
+                console.error(error);
+                toast.error(`ダウンロードディレクトリの削除に失敗しました: ${error.message}`);
+              })
+              .finally(() => {
+                button.disabled = false;
               });
           }}>
             ダウンロードディレクトリを削除
