@@ -61,7 +61,7 @@ export const CleanupPage: React.FC = () => {
       
       <ul className="space-y-3">
         <li>
-          <Button type="button" className="w-full" variant="default" disabled={isDiscordLogoutLoading} onClick={(event) => {
+          <Button type="button" className="w-full" variant="default" disabled={isDiscordLogoutLoading} onClick={() => {
             logoutDiscord();
           }}>
             {isDiscordLogoutLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -69,7 +69,7 @@ export const CleanupPage: React.FC = () => {
           </Button>
         </li>
         <li>
-          <Button type="button" className="w-full" variant="default" disabled={isChromeLogoutLoading} onClick={(event) => {
+          <Button type="button" className="w-full" variant="default" disabled={isChromeLogoutLoading} onClick={() => {
             logoutChrome();
           }}>
             {isChromeLogoutLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -77,7 +77,7 @@ export const CleanupPage: React.FC = () => {
           </Button>
         </li>
         <li>
-          <Button type="button" className="w-full" variant="default" disabled={isDownloadDirectoryDeleteLoading} onClick={(event) => {
+          <Button type="button" className="w-full" variant="default" disabled={isDownloadDirectoryDeleteLoading} onClick={() => {
             deleteDownloadDirectory();
           }}>
             {isDownloadDirectoryDeleteLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
