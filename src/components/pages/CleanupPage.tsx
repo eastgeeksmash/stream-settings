@@ -55,7 +55,7 @@ export const CleanupPage: React.FC = () => {
   }
 
   return (
-    <div className="dark:bg-slate-800 p-6 rounded-lg">
+    <>
       <h2 className="text-2xl font-bold mb-4">Cleanup</h2>
       
       <ul className="space-y-3">
@@ -81,6 +81,6 @@ export const CleanupPage: React.FC = () => {
           </Button>
         </li>
       </ul>
-    </div>
+    </>
   );
 }; 

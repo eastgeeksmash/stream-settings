@@ -8,7 +8,7 @@ export const SettingsPage: React.FC = () => {
   const { theme, setTheme } = useTheme();
 
   return (
-    <div className="dark:bg-slate-800 p-6 rounded-lg">
+    <>
       <h2 className="text-2xl font-bold mb-4">Settings</h2>
       
       <div className="space-y-6">
@@ -42,6 +42,6 @@ export const SettingsPage: React.FC = () => {
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }; 

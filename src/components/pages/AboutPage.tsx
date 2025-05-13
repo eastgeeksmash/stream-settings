@@ -2,7 +2,7 @@ import type React from 'react';
 
 export const AboutPage: React.FC = () => {
   return (
-    <div className="dark:bg-slate-800 p-6 rounded-lg">
+    <>
       <h2 className="text-2xl font-bold mb-4">About</h2>
       <div className="mt-6 border-t pt-4">
         <h3 className="text-xl font-semibold mb-2">Copyright</h3>
@@ -16,6 +16,6 @@ export const AboutPage: React.FC = () => {
           Copyright (c) 2025 EastGeekSmash
         </p>
       </div>
-    </div>
+    </>
   );
 }; 
