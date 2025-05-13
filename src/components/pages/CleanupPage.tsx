@@ -3,6 +3,7 @@ import { Button } from '../ui/button';
 import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'sonner';
 import { useState } from 'react';
+import { Loader2 } from 'lucide-react';
 
 export const CleanupPage: React.FC = () => {
   const [isDiscordLogoutLoading, setIsDiscordLogoutLoading] = useState(false);
@@ -63,6 +64,7 @@ export const CleanupPage: React.FC = () => {
           <Button type="button" className="w-full" variant="default" disabled={isDiscordLogoutLoading} onClick={(event) => {
             logoutDiscord();
           }}>
+            {isDiscordLogoutLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Discordログアウト
           </Button>
         </li>
@@ -70,6 +72,7 @@ export const CleanupPage: React.FC = () => {
           <Button type="button" className="w-full" variant="default" disabled={isChromeLogoutLoading} onClick={(event) => {
             logoutChrome();
           }}>
+            {isChromeLogoutLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Chromeログアウト
           </Button>
         </li>
@@ -77,6 +80,7 @@ export const CleanupPage: React.FC = () => {
           <Button type="button" className="w-full" variant="default" disabled={isDownloadDirectoryDeleteLoading} onClick={(event) => {
             deleteDownloadDirectory();
           }}>
+            {isDownloadDirectoryDeleteLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             ダウンロードディレクトリを削除
           </Button>
         </li>

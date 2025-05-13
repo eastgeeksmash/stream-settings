@@ -3,6 +3,7 @@ import { Button } from '../ui/button';
 import { toast } from "sonner"
 import { invoke } from '@tauri-apps/api/core';
 import { useState } from 'react';
+import { Loader2 } from 'lucide-react';
 
 
 export const SetupPage: React.FC = () => {
@@ -64,6 +65,7 @@ export const SetupPage: React.FC = () => {
           <Button type="button" className="w-full" variant="default" disabled={isMakeNetworkPrivateLoading} onClick={() => {
             makeNetworkPrivate();
           }}>
+            {isMakeNetworkPrivateLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             全ネットワークをプライベート化
           </Button>
         </li>
@@ -83,6 +85,7 @@ export const SetupPage: React.FC = () => {
               changePowerSettings();
             }}
           >
+            {isChangePowerSettingsLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             電源設定を変更(高パフォーマンス)
           </Button>
         </li>
@@ -90,6 +93,7 @@ export const SetupPage: React.FC = () => {
           <Button type="button" className="w-full" variant="default" disabled={isDisableWindowsNotificationsLoading} onClick={() => {
             disableWindowsNotifications();
           }}>
+            {isDisableWindowsNotificationsLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             通知を無効化
           </Button>
         </li>
