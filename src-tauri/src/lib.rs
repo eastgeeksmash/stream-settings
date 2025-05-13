@@ -167,6 +167,28 @@ fn delete_download_directory() -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+fn disable_windows_notifications() -> Result<(), String> {
+    use std::process::Command;
+
+    let output = Command::new("powershell")
+        .args(&[
+            "-Command",
+            "New-Item -Path \"HKCU:\\Software\\Policies\\Microsoft\\Windows\" -Name \"Explorer\" -force; New-ItemProperty -Path \"HKCU:\\Software\\Policies\\Microsoft\\Windows\\Explorer\" -Name \"DisableNotificationCenter\" -PropertyType \"DWord\" -Value 1; New-ItemProperty -Path \"HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\PushNotifications\" -Name \"ToastEnabled\" -PropertyType \"DWord\" -Value 0"
+        ])
+        .output()
+        .map_err(|e| e.to_string())?;
+
+    if !output.status.success() {
+        let error_message = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("通知センターの無効化に失敗しました: {}", error_message));
+    }
+
+    Ok(())
+}
+
+
+
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -177,7 +199,8 @@ pub fn run() {
             logout_chrome,
             delete_download_directory,
             change_power_settings,
-            make_network_private
+            make_network_private,
+            disable_windows_notifications
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

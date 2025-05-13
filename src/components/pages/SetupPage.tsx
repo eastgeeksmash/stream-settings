@@ -8,6 +8,8 @@ import { useState } from 'react';
 export const SetupPage: React.FC = () => {
   const [isMakeNetworkPrivateLoading, setIsMakeNetworkPrivateLoading] = useState(false);
   const [isChangePowerSettingsLoading, setIsChangePowerSettingsLoading] = useState(false);
+  const [isDisableWindowsNotificationsLoading, setIsDisableWindowsNotificationsLoading] = useState(false);
+
 
   const makeNetworkPrivate = () => {
     setIsMakeNetworkPrivateLoading(true);
@@ -39,6 +41,21 @@ export const SetupPage: React.FC = () => {
       });
   }
 
+  const disableWindowsNotifications = () => {
+    setIsDisableWindowsNotificationsLoading(true);
+    invoke('disable_windows_notifications')
+      .then(() => {
+        toast.success("通知センターの無効化が完了しました");
+      })
+      .catch((error: Error) => {
+        console.error(error);
+        toast.error(`通知センターの無効化に失敗しました: ${error.message}`);
+      })
+      .finally(() => {
+        setIsDisableWindowsNotificationsLoading(false);
+      });
+  }
+
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
       <h2 className="text-2xl font-bold mb-4">Setup</h2>
@@ -47,12 +64,12 @@ export const SetupPage: React.FC = () => {
           <Button type="button" className="w-full" variant="default" disabled={isMakeNetworkPrivateLoading} onClick={() => {
             makeNetworkPrivate();
           }}>
-            ネットワークをプライベート化
+            全ネットワークをプライベート化
           </Button>
         </li>
         <li>
           <Button type="button" className="w-full" variant="default" disabled>
-            OBSの初期設定実施
+            OBSの初期設定を実施
           </Button>
         </li>
         <li>
@@ -66,7 +83,14 @@ export const SetupPage: React.FC = () => {
               changePowerSettings();
             }}
           >
-            電源設定の変更
+            電源設定を変更(高パフォーマンス)
+          </Button>
+        </li>
+        <li>
+          <Button type="button" className="w-full" variant="default" disabled={isDisableWindowsNotificationsLoading} onClick={() => {
+            disableWindowsNotifications();
+          }}>
+            通知を無効化
           </Button>
         </li>
       </ul>
