@@ -1,6 +1,6 @@
 [package]
 name = "stream-settings"
-version = "0.1.1"
+version = "0.1.2"
 description = "Stream Settings"
 authors = ["EastGeekSmash"]
 edition = "2021"
