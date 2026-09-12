@@ -11,9 +11,13 @@ pub const SLEEP_SUBGROUP: GUID = GUID::from_u128(0x238c9fa8_0aad_41ed_83f4_97be2
 pub const STANDBY_TIMEOUT: GUID = GUID::from_u128(0x29f6c1db_86da_48c5_9fdb_f2b67b1f44da);
 pub const SYSTEM_BUTTON_SUBGROUP: GUID = GUID::from_u128(0x4f971e89_eebd_4455_a8de_9e59040e7347);
 pub const POWERBUTTON_ACTION: GUID = GUID::from_u128(0x7648efa3_dd9c_4e3e_b566_50f929386280);
+pub const VIDEO_SUBGROUP: GUID = GUID::from_u128(0x7516b95f_f776_4464_8c53_06167f40cc99);
+pub const VIDEO_POWERDOWN_TIMEOUT: GUID = GUID::from_u128(0x3c0bc019_c8a8_4e32_8ff6_4ea39ae5c035);
+pub const HIBERNATE_TIMEOUT: GUID = GUID::from_u128(0x9d7815a6_7ee4_458c_8c55_4ec09ba02559);
 
 const SCHEME_OPERATION: &str = "電源プランの変更に失敗しました";
 const SLEEP_OPERATION: &str = "スリープ設定の変更に失敗しました";
+const DISPLAY_OPERATION: &str = "自動電源オフ設定の変更に失敗しました";
 const BUTTON_OPERATION: &str = "電源ボタン設定の変更に失敗しました";
 const APPLY_OPERATION: &str = "電源設定の適用に失敗しました";
 
@@ -26,6 +30,13 @@ pub fn change_power_settings() -> Result<(), String> {
     }
 
     write_ac_value(&SLEEP_SUBGROUP, &STANDBY_TIMEOUT, 0, SLEEP_OPERATION)?;
+    write_ac_value(&SLEEP_SUBGROUP, &HIBERNATE_TIMEOUT, 0, DISPLAY_OPERATION)?;
+    write_ac_value(
+        &VIDEO_SUBGROUP,
+        &VIDEO_POWERDOWN_TIMEOUT,
+        0,
+        DISPLAY_OPERATION,
+    )?;
     write_ac_value(
         &SYSTEM_BUTTON_SUBGROUP,
         &POWERBUTTON_ACTION,
@@ -118,6 +129,14 @@ mod tests {
         assert_eq!(
             STANDBY_TIMEOUT,
             guid_from_hyphenated("29f6c1db-86da-48c5-9fdb-f2b67b1f44da")
+        );
+        assert_eq!(
+            VIDEO_POWERDOWN_TIMEOUT,
+            guid_from_hyphenated("3c0bc019-c8a8-4e32-8ff6-4ea39ae5c035")
+        );
+        assert_eq!(
+            HIBERNATE_TIMEOUT,
+            guid_from_hyphenated("9d7815a6-7ee4-458c-8c55-4ec09ba02559")
         );
     }
 }

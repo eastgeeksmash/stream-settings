@@ -1,7 +1,11 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
+use windows::core::GUID;
 use windows::Win32::System::Com::CoTaskMemFree;
-use windows::Win32::UI::Shell::{FOLDERID_Downloads, SHGetKnownFolderPath, KF_FLAG_DEFAULT};
+use windows::Win32::UI::Shell::{
+    FOLDERID_Downloads, FOLDERID_LocalAppData, FOLDERID_RoamingAppData, SHGetKnownFolderPath,
+    KF_FLAG_DEFAULT,
+};
 
 use super::com::ComInitializer;
 use super::error::from_windows_error;
@@ -26,14 +30,33 @@ pub fn delete_download_directory() -> Result<(), String> {
     Ok(())
 }
 
+pub fn local_app_data(operation: &str) -> Result<PathBuf, String> {
+    known_folder(&FOLDERID_LocalAppData, operation)
+}
+
+pub fn roaming_app_data(operation: &str) -> Result<PathBuf, String> {
+    known_folder(&FOLDERID_RoamingAppData, operation)
+}
+
+pub fn remove_tree_if_exists(path: &Path, operation: &str) -> Result<(), String> {
+    if !path.exists() {
+        return Ok(());
+    }
+    std::fs::remove_dir_all(path).map_err(|error| format!("{operation}: {error}"))
+}
+
 fn known_downloads_path() -> Result<PathBuf, String> {
-    let _com = ComInitializer::new(OPERATION)?;
+    known_folder(&FOLDERID_Downloads, OPERATION)
+}
+
+fn known_folder(id: &GUID, operation: &str) -> Result<PathBuf, String> {
+    let _com = ComInitializer::new(operation)?;
     let pwstr = unsafe {
-        SHGetKnownFolderPath(&FOLDERID_Downloads, KF_FLAG_DEFAULT, None)
-            .map_err(|error| from_windows_error(OPERATION, error))?
+        SHGetKnownFolderPath(id, KF_FLAG_DEFAULT, None)
+            .map_err(|error| from_windows_error(operation, error))?
     };
 
-    let path = unsafe { pwstr.to_string() }.map_err(|error| format!("{OPERATION}: {error}"))?;
+    let path = unsafe { pwstr.to_string() }.map_err(|error| format!("{operation}: {error}"))?;
     unsafe { CoTaskMemFree(Some(pwstr.as_ptr().cast())) };
     Ok(PathBuf::from(path))
 }

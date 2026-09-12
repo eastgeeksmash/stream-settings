@@ -46,8 +46,40 @@ pub fn collect_process_tree(entries: &[ProcessRecord], roots: &[u32]) -> Vec<u32
     result
 }
 
+pub fn terminate_process_tree_by_name(name: &str, operation: &str) -> Result<bool, String> {
+    let entries = snapshot_processes_with_operation(operation)?;
+    let current_pid = unsafe { GetCurrentProcessId() };
+    let roots: Vec<u32> = entries
+        .iter()
+        .filter(|entry| process_name_matches(&entry.name, name))
+        .map(|entry| entry.pid)
+        .collect();
+
+    if roots.is_empty() {
+        return Ok(false);
+    }
+
+    let targets = collect_process_tree(&entries, &roots)
+        .into_iter()
+        .filter(|pid| *pid != current_pid)
+        .collect::<Vec<_>>();
+
+    let mut failures = Vec::new();
+    for pid in targets.iter().rev() {
+        if let Err(error) = terminate_pid(*pid, operation) {
+            failures.push(error);
+        }
+    }
+
+    if let Some(error) = failures.into_iter().next() {
+        return Err(error);
+    }
+
+    Ok(true)
+}
+
 pub fn logout_discord() -> Result<(), String> {
-    let terminated = terminate_discord_tree()?;
+    let terminated = terminate_process_tree_by_name(DISCORD_PROCESS_NAME, OPERATION)?;
     if terminated {
         thread::sleep(Duration::from_secs(5));
     }
@@ -75,42 +107,14 @@ pub fn logout_discord() -> Result<(), String> {
     Ok(())
 }
 
-fn terminate_discord_tree() -> Result<bool, String> {
-    let entries = snapshot_processes()?;
-    let current_pid = unsafe { GetCurrentProcessId() };
-    let roots: Vec<u32> = entries
-        .iter()
-        .filter(|entry| process_name_matches(&entry.name, DISCORD_PROCESS_NAME))
-        .map(|entry| entry.pid)
-        .collect();
-
-    if roots.is_empty() {
-        return Ok(false);
-    }
-
-    let targets = collect_process_tree(&entries, &roots)
-        .into_iter()
-        .filter(|pid| *pid != current_pid)
-        .collect::<Vec<_>>();
-
-    let mut failures = Vec::new();
-    for pid in targets.iter().rev() {
-        if let Err(error) = terminate_pid(*pid) {
-            failures.push(error);
-        }
-    }
-
-    if let Some(error) = failures.into_iter().next() {
-        return Err(error);
-    }
-
-    Ok(true)
+pub(super) fn snapshot_processes() -> Result<Vec<ProcessRecord>, String> {
+    snapshot_processes_with_operation(OPERATION)
 }
 
-pub(super) fn snapshot_processes() -> Result<Vec<ProcessRecord>, String> {
+fn snapshot_processes_with_operation(operation: &str) -> Result<Vec<ProcessRecord>, String> {
     let snapshot = unsafe {
         CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0)
-            .map_err(|error| from_windows_error(OPERATION, error))?
+            .map_err(|error| from_windows_error(operation, error))?
     };
 
     let mut entry = PROCESSENTRY32W {
@@ -126,7 +130,7 @@ pub(super) fn snapshot_processes() -> Result<Vec<ProcessRecord>, String> {
         }
         return first
             .map(|_| Vec::new())
-            .map_err(|error| from_windows_error(OPERATION, error));
+            .map_err(|error| from_windows_error(operation, error));
     }
 
     loop {
@@ -147,14 +151,14 @@ pub(super) fn snapshot_processes() -> Result<Vec<ProcessRecord>, String> {
     Ok(records)
 }
 
-fn terminate_pid(pid: u32) -> Result<(), String> {
+fn terminate_pid(pid: u32, operation: &str) -> Result<(), String> {
     let handle = match unsafe { OpenProcess(PROCESS_TERMINATE, false, pid) } {
         Ok(handle) => handle,
         Err(error) => {
             if is_not_found(&error) {
                 return Ok(());
             }
-            return Err(from_windows_error(OPERATION, error));
+            return Err(from_windows_error(operation, error));
         }
     };
 
@@ -162,7 +166,7 @@ fn terminate_pid(pid: u32) -> Result<(), String> {
     unsafe {
         let _ = CloseHandle(handle);
     }
-    result.map_err(|error| from_windows_error(OPERATION, error))
+    result.map_err(|error| from_windows_error(operation, error))
 }
 
 fn is_not_found(error: &windows::core::Error) -> bool {
