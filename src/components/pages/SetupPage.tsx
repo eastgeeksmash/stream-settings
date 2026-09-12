@@ -142,6 +142,14 @@ const actions: Action[] = [
     description: 'vMix向けに、回線の待ち時間とゲーム機能の邪魔を減らします。',
     batch: true,
   },
+  {
+    command: 'optimize_nvidia_settings',
+    label: 'NVIDIA向けに最適化',
+    success: 'NVIDIA向け最適化が完了しました',
+    failure: 'NVIDIA向け最適化に失敗しました',
+    description: 'NVIDIAの電源を最大性能にし、画質設定をアプリ任せにします。モニターの色形式も配信向けに整えます。NVIDIA搭載PCのみ使えます。',
+    batch: true,
+  },
 ];
 
 export const SetupPage: React.FC = () => {

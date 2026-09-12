@@ -120,6 +120,11 @@ fn optimize_vmix_settings() -> Result<(), String> {
     winops::optimize_vmix_settings()
 }
 
+#[tauri::command]
+fn optimize_nvidia_settings() -> Result<(), String> {
+    winops::optimize_nvidia_settings()
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -150,7 +155,8 @@ pub fn run() {
             purge_obs_settings,
             purge_vmix_settings,
             optimize_ndi_settings,
-            optimize_vmix_settings
+            optimize_vmix_settings,
+            optimize_nvidia_settings
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

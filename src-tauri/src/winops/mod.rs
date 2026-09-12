@@ -5,6 +5,7 @@ mod dhcp;
 mod error;
 mod folders;
 mod network;
+mod nvidia;
 mod onedrive;
 mod optimize;
 mod power;
@@ -28,6 +29,7 @@ pub use dhcp::{
 };
 pub use folders::delete_download_directory;
 pub use network::make_network_private;
+pub use nvidia::optimize_nvidia_settings;
 pub use onedrive::disable_onedrive_sync;
 pub use optimize::{optimize_ndi_settings, optimize_vmix_settings};
 pub use power::change_power_settings;
