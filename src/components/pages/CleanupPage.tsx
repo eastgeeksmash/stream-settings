@@ -1,90 +1,97 @@
 import type React from 'react';
 import { Button } from '../ui/button';
-import { invoke } from '@tauri-apps/api/core';
-import { toast } from 'sonner';
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
+import { ActionTooltip } from '@/components/action-tooltip';
+import { invokeAction, showErrorToast, showSuccessToast } from '@/lib/invoke';
+
+type Action = {
+  command: string;
+  label: string;
+  success: string;
+  failure: string;
+  description: string;
+};
+
+const actions: Action[] = [
+  {
+    command: 'logout_discord',
+    label: 'Discordログアウト',
+    success: 'Discordのログアウトが完了しました',
+    failure: 'Discordのログアウトに失敗しました',
+    description: 'Discordを終了し、このPCからログアウトします。次の人が入れなくなります。',
+  },
+  {
+    command: 'logout_chrome',
+    label: 'Chromeログアウト',
+    success: 'Chromeのログアウトが完了しました',
+    failure: 'Chromeのログアウトに失敗しました',
+    description: 'ブラウザでGoogleアカウントからログアウトします。',
+  },
+  {
+    command: 'delete_download_directory',
+    label: 'ダウンロードディレクトリを削除',
+    success: 'ダウンロードディレクトリの削除が完了しました',
+    failure: 'ダウンロードディレクトリの削除に失敗しました',
+    description: 'ダウンロードフォルダの中身をすべて消します。フォルダ自体は残ります。',
+  },
+  {
+    command: 'purge_obs_settings',
+    label: 'OBS設定を削除',
+    success: 'OBS設定の削除が完了しました',
+    failure: 'OBS設定の削除に失敗しました',
+    description: 'OBSを終了し、配信ソフトの設定を初期状態に戻します。シーンなども消えます。',
+  },
+  {
+    command: 'purge_vmix_settings',
+    label: 'vMix設定を削除',
+    success: 'vMix設定の削除が完了しました',
+    failure: 'vMix設定の削除に失敗しました',
+    description: 'vMixを終了し、設定を初期状態に戻します。',
+  },
+];
 
 export const CleanupPage: React.FC = () => {
-  const [isDiscordLogoutLoading, setIsDiscordLogoutLoading] = useState(false);
-  const [isChromeLogoutLoading, setIsChromeLogoutLoading] = useState(false);
-  const [isDownloadDirectoryDeleteLoading, setIsDownloadDirectoryDeleteLoading] = useState(false);
+  const [loadingCommand, setLoadingCommand] = useState<string | null>(null);
 
-  const logoutDiscord = () => {
-    setIsDiscordLogoutLoading(true);
-    invoke('logout_discord')
-      .then(() => {
-        toast.success('Discordのログアウトが完了しました');
-      })
-      .catch((error: Error) => {
-        console.error(error);
-        toast.error(`Discordのログアウトに失敗しました: ${error.message}`);
-      })
-      .finally(() => {
-        setIsDiscordLogoutLoading(false);
-      });
-  }
-
-  const logoutChrome = () => {
-    setIsChromeLogoutLoading(true);
-    invoke('logout_chrome')
-      .then(() => {
-        toast.success('Chromeのログアウトが完了しました');
-      })
-      .catch((error: Error) => {
-        console.error(error);
-        toast.error(`Chromeのログアウトに失敗しました: ${error.message}`);
-      })
-      .finally(() => {
-        setIsChromeLogoutLoading(false);
-      });
-  }
-
-  const deleteDownloadDirectory = () => {
-    setIsDownloadDirectoryDeleteLoading(true);
-    invoke('delete_download_directory')
-      .then(() => {
-        toast.success('ダウンロードディレクトリの削除が完了しました');
-      })
-      .catch((error: Error) => {
-        console.error(error);
-        toast.error(`ダウンロードディレクトリの削除に失敗しました: ${error.message}`);
-      })
-      .finally(() => {
-        setIsDownloadDirectoryDeleteLoading(false);
-      });
-  }
+  const run = async (action: Action) => {
+    setLoadingCommand(action.command);
+    const result = await invokeAction(action.command, action.failure);
+    if (result.ok) {
+      showSuccessToast(action.success);
+    } else {
+      showErrorToast(result.message);
+    }
+    setLoadingCommand(null);
+  };
 
   return (
     <>
       <h2 className="text-2xl font-bold mb-4">Cleanup</h2>
       
       <ul className="space-y-3">
-        <li>
-          <Button type="button" className="w-full" variant="default" disabled={isDiscordLogoutLoading} onClick={() => {
-            logoutDiscord();
-          }}>
-            {isDiscordLogoutLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Discordログアウト
-          </Button>
-        </li>
-        <li>
-          <Button type="button" className="w-full" variant="default" disabled={isChromeLogoutLoading} onClick={() => {
-            logoutChrome();
-          }}>
-            {isChromeLogoutLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Chromeログアウト
-          </Button>
-        </li>
-        <li>
-          <Button type="button" className="w-full" variant="default" disabled={isDownloadDirectoryDeleteLoading} onClick={() => {
-            deleteDownloadDirectory();
-          }}>
-            {isDownloadDirectoryDeleteLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            ダウンロードディレクトリを削除
-          </Button>
-        </li>
+        {actions.map((action) => {
+          const loading = loadingCommand === action.command;
+          return (
+            <li key={action.command}>
+              <ActionTooltip text={action.description}>
+                <Button
+                  type="button"
+                  className="w-full"
+                  variant="default"
+                  disabled={loading}
+                  onClick={() => {
+                    void run(action);
+                  }}
+                >
+                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {action.label}
+                </Button>
+              </ActionTooltip>
+            </li>
+          );
+        })}
       </ul>
     </>
   );
-}; 
+};

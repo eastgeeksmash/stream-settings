@@ -1,11 +1,43 @@
 import type React from 'react';
 import { Switch } from '../ui/switch';
 import { Label } from '../ui/label';
+import { Button } from '../ui/button';
 import { useTheme } from '../theme-provider';
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun, Loader2 } from "lucide-react";
+import { useEffect, useState } from 'react';
+import { check } from '@tauri-apps/plugin-updater';
+import { relaunch } from '@tauri-apps/plugin-process';
+import { formatInvokeError, showErrorToast, showSuccessToast } from '@/lib/invoke';
 
 export const SettingsPage: React.FC = () => {
-  const { theme, setTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const [themeReady, setThemeReady] = useState(false);
+
+  useEffect(() => {
+    setThemeReady(true);
+  }, []);
+
+  const isDark = themeReady && resolvedTheme === "dark";
+
+  const checkForUpdates = async () => {
+    setCheckingUpdate(true);
+    try {
+      const update = await check();
+      if (!update) {
+        showSuccessToast('最新バージョンです');
+        return;
+      }
+
+      await update.downloadAndInstall();
+      showSuccessToast('更新をインストールしました。再起動します');
+      await relaunch();
+    } catch (error) {
+      showErrorToast(`更新の確認に失敗しました: ${formatInvokeError(error)}`);
+    } finally {
+      setCheckingUpdate(false);
+    }
+  };
 
   return (
     <>
@@ -23,11 +55,11 @@ export const SettingsPage: React.FC = () => {
           <div className="flex items-center space-x-2">
             <Switch
               id="theme-mode"
-              checked={theme === "dark"}
+              checked={isDark}
               onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
             />
             <Label htmlFor="theme-mode" className="flex items-center gap-2">
-              {theme === "dark" ? (
+              {isDark ? (
                 <>
                   <Moon className="h-4 w-4" />
                   ダークモード
@@ -41,7 +73,20 @@ export const SettingsPage: React.FC = () => {
             </Label>
           </div>
         </div>
+
+        <Button
+          type="button"
+          className="w-full"
+          variant="default"
+          disabled={checkingUpdate}
+          onClick={() => {
+            void checkForUpdates();
+          }}
+        >
+          {checkingUpdate && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          更新を確認
+        </Button>
       </div>
     </>
   );
-}; 
+};

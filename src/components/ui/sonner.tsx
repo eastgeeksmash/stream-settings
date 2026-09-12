@@ -1,13 +1,23 @@
-import { useTheme } from "next-themes"
+import { useTheme } from "@/components/theme-provider"
 import { Toaster as Sonner, ToasterProps } from "sonner"
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme()
+  const { resolvedTheme } = useTheme()
+  const theme = resolvedTheme === "dark" || resolvedTheme === "light" ? resolvedTheme : "system"
 
   return (
     <Sonner
       theme={theme as ToasterProps["theme"]}
       className="toaster group"
+      closeButton
+      swipeDirections={[]}
+      toastOptions={{
+        classNames: {
+          toast: "select-text cursor-text",
+          title: "select-text whitespace-pre-wrap break-all",
+          description: "select-text whitespace-pre-wrap break-all",
+        },
+      }}
       style={
         {
           "--normal-bg": "var(--popover)",
