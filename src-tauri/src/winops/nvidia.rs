@@ -46,9 +46,50 @@ const PREFERRED_PSTATE_PREFER_MAX: u32 = 1;
 /// Antialiasing - Mode
 const AA_MODE_SELECTOR_ID: u32 = 0x107E_FC5B;
 const AA_MODE_SELECTOR_APP_CONTROL: u32 = 0;
+/// Antialiasing - Setting
+const AA_MODE_METHOD_ID: u32 = 0x10D7_73D2;
+const AA_MODE_METHOD_NONE: u32 = 0;
 /// Anisotropic filtering mode
 const ANISO_MODE_SELECTOR_ID: u32 = 0x10D2_BB16;
 const ANISO_MODE_SELECTOR_APP: u32 = 0;
+/// Vertical Sync — Use the 3D application setting
+const VSYNCMODE_ID: u32 = 0x00A8_79CF;
+const VSYNCMODE_PASSIVE: u32 = 0x6092_5292;
+/// OpenGL default swap interval
+const OGL_DEFAULT_SWAP_INTERVAL_ID: u32 = 0x206A_6582;
+const OGL_DEFAULT_SWAP_INTERVAL_APP_CONTROLLED: u32 = 0;
+/// Maximum pre-rendered frames
+const PRERENDERLIMIT_ID: u32 = 0x007B_A09E;
+const PRERENDERLIMIT_APP_CONTROLLED: u32 = 0;
+/// Virtual Reality pre-rendered frames
+const VRPRERENDERLIMIT_ID: u32 = 0x1011_1133;
+const VRPRERENDERLIMIT_APP_CONTROLLED: u32 = 0;
+/// Preferred refresh rate
+const REFRESH_RATE_OVERRIDE_ID: u32 = 0x0064_B541;
+const REFRESH_RATE_OVERRIDE_APPLICATION_CONTROLLED: u32 = 0;
+/// Stereo - swap mode
+const WKS_STEREO_SWAP_MODE_ID: u32 = 0x1133_3333;
+const WKS_STEREO_SWAP_MODE_APPLICATION_CONTROL: u32 = 0;
+
+const REQUIRED_DRS_SETTINGS: &[(u32, u32)] = &[
+    (PREFERRED_PSTATE_ID, PREFERRED_PSTATE_PREFER_MAX),
+    (VSYNCMODE_ID, VSYNCMODE_PASSIVE),
+    (AA_MODE_SELECTOR_ID, AA_MODE_SELECTOR_APP_CONTROL),
+    (ANISO_MODE_SELECTOR_ID, ANISO_MODE_SELECTOR_APP),
+];
+
+/// Settings whose public enum has an Application Controlled value.
+const APP_CONTROLLED_DRS_SETTINGS: &[(u32, u32)] = &[
+    (AA_MODE_SELECTOR_ID, AA_MODE_SELECTOR_APP_CONTROL),
+    (AA_MODE_METHOD_ID, AA_MODE_METHOD_NONE),
+    (ANISO_MODE_SELECTOR_ID, ANISO_MODE_SELECTOR_APP),
+    (VSYNCMODE_ID, VSYNCMODE_PASSIVE),
+    (OGL_DEFAULT_SWAP_INTERVAL_ID, OGL_DEFAULT_SWAP_INTERVAL_APP_CONTROLLED),
+    (PRERENDERLIMIT_ID, PRERENDERLIMIT_APP_CONTROLLED),
+    (VRPRERENDERLIMIT_ID, VRPRERENDERLIMIT_APP_CONTROLLED),
+    (REFRESH_RATE_OVERRIDE_ID, REFRESH_RATE_OVERRIDE_APPLICATION_CONTROLLED),
+    (WKS_STEREO_SWAP_MODE_ID, WKS_STEREO_SWAP_MODE_APPLICATION_CONTROL),
+];
 
 const NVDRS_DWORD_TYPE: u32 = 0;
 const NVDRS_CURRENT_PROFILE_LOCATION: u32 = 0;
@@ -247,13 +288,25 @@ impl NvApi {
             check(unsafe { (self.drs_load_settings)(session) })?;
             let mut profile = ptr::null_mut();
             check(unsafe { (self.drs_get_base_profile)(session, &mut profile) })?;
-            for (setting_id, value) in [
-                (PREFERRED_PSTATE_ID, PREFERRED_PSTATE_PREFER_MAX),
-                (AA_MODE_SELECTOR_ID, AA_MODE_SELECTOR_APP_CONTROL),
-                (ANISO_MODE_SELECTOR_ID, ANISO_MODE_SELECTOR_APP),
-            ] {
-                let mut setting = dword_setting(setting_id, value);
+            for (setting_id, value) in REQUIRED_DRS_SETTINGS {
+                let mut setting = dword_setting(*setting_id, *value);
                 check(unsafe { (self.drs_set_setting)(session, profile, &mut setting) })?;
+            }
+            for (setting_id, value) in APP_CONTROLLED_DRS_SETTINGS {
+                if REQUIRED_DRS_SETTINGS
+                    .iter()
+                    .any(|(required_id, _)| required_id == setting_id)
+                {
+                    continue;
+                }
+                let mut setting = dword_setting(*setting_id, *value);
+                let status = unsafe { (self.drs_set_setting)(session, profile, &mut setting) };
+                if status != NVAPI_OK
+                    && status != NVAPI_NOT_SUPPORTED
+                    && status != NVAPI_NO_IMPLEMENTATION
+                {
+                    return Err(status_error(status));
+                }
             }
             check(unsafe { (self.drs_save_settings)(session) })
         })();
@@ -428,8 +481,32 @@ mod tests {
         assert_eq!(PREFERRED_PSTATE_PREFER_MAX, 1);
         assert_eq!(AA_MODE_SELECTOR_ID, 0x107EFC5B);
         assert_eq!(AA_MODE_SELECTOR_APP_CONTROL, 0);
+        assert_eq!(AA_MODE_METHOD_ID, 0x10D773D2);
+        assert_eq!(AA_MODE_METHOD_NONE, 0);
         assert_eq!(ANISO_MODE_SELECTOR_ID, 0x10D2BB16);
         assert_eq!(ANISO_MODE_SELECTOR_APP, 0);
+        assert_eq!(VSYNCMODE_ID, 0x00A879CF);
+        assert_eq!(VSYNCMODE_PASSIVE, 0x60925292);
+        assert_eq!(OGL_DEFAULT_SWAP_INTERVAL_ID, 0x206A6582);
+        assert_eq!(OGL_DEFAULT_SWAP_INTERVAL_APP_CONTROLLED, 0);
+        assert_eq!(PRERENDERLIMIT_ID, 0x007BA09E);
+        assert_eq!(PRERENDERLIMIT_APP_CONTROLLED, 0);
+        assert_eq!(VRPRERENDERLIMIT_ID, 0x10111133);
+        assert_eq!(VRPRERENDERLIMIT_APP_CONTROLLED, 0);
+        assert_eq!(REFRESH_RATE_OVERRIDE_ID, 0x0064B541);
+        assert_eq!(REFRESH_RATE_OVERRIDE_APPLICATION_CONTROLLED, 0);
+        assert_eq!(WKS_STEREO_SWAP_MODE_ID, 0x11333333);
+        assert_eq!(WKS_STEREO_SWAP_MODE_APPLICATION_CONTROL, 0);
+    }
+
+    #[test]
+    fn app_controlled_settings_cover_vsync_and_known_selectors() {
+        assert!(APP_CONTROLLED_DRS_SETTINGS.contains(&(VSYNCMODE_ID, VSYNCMODE_PASSIVE)));
+        assert!(APP_CONTROLLED_DRS_SETTINGS.contains(&(AA_MODE_SELECTOR_ID, AA_MODE_SELECTOR_APP_CONTROL)));
+        assert!(APP_CONTROLLED_DRS_SETTINGS.contains(&(ANISO_MODE_SELECTOR_ID, ANISO_MODE_SELECTOR_APP)));
+        assert!(REQUIRED_DRS_SETTINGS.contains(&(PREFERRED_PSTATE_ID, PREFERRED_PSTATE_PREFER_MAX)));
+        assert!(REQUIRED_DRS_SETTINGS.contains(&(VSYNCMODE_ID, VSYNCMODE_PASSIVE)));
+        assert_eq!(APP_CONTROLLED_DRS_SETTINGS.len(), 9);
     }
 
     #[test]
