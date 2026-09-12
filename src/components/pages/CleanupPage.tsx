@@ -47,7 +47,14 @@ const actions: Action[] = [
     label: 'vMix設定を削除',
     success: 'vMix設定の削除が完了しました',
     failure: 'vMix設定の削除に失敗しました',
-    description: 'vMixを終了し、設定を初期状態に戻します。',
+    description: 'vMixを終了し、設定を初期状態に戻します。登録キーは残ります。',
+  },
+  {
+    command: 'reset_vmix_registration',
+    label: 'vMix登録キーを削除',
+    success: 'vMix登録キーの削除が完了しました',
+    failure: 'vMix登録キーの削除に失敗しました',
+    description: 'vMixを終了し、このPCに保存された登録キーを消します。次回起動時に再入力が必要です。',
   },
 ];
 

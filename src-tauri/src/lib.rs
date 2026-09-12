@@ -111,6 +111,11 @@ fn purge_vmix_settings() -> Result<(), String> {
 }
 
 #[tauri::command]
+fn reset_vmix_registration() -> Result<(), String> {
+    winops::reset_vmix_registration()
+}
+
+#[tauri::command]
 fn optimize_ndi_settings() -> Result<(), String> {
     winops::optimize_ndi_settings()
 }
@@ -154,6 +159,7 @@ pub fn run() {
             defer_windows_update,
             purge_obs_settings,
             purge_vmix_settings,
+            reset_vmix_registration,
             optimize_ndi_settings,
             optimize_vmix_settings,
             optimize_nvidia_settings
