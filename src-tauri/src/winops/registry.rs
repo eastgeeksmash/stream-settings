@@ -1,8 +1,9 @@
-use windows::core::w;
+use windows::core::{w, PWSTR};
 use windows::Win32::Foundation::{ERROR_FILE_NOT_FOUND, ERROR_SUCCESS};
 use windows::Win32::System::Registry::{
-    RegCloseKey, RegCreateKeyExW, RegDeleteValueW, RegSetValueExW, HKEY, HKEY_CURRENT_USER,
-    HKEY_LOCAL_MACHINE, KEY_WRITE, REG_DWORD, REG_OPTION_NON_VOLATILE, REG_SZ,
+    RegCloseKey, RegCreateKeyExW, RegDeleteValueW, RegEnumKeyExW, RegOpenKeyExW, RegQueryValueExW,
+    RegSetValueExW, HKEY, HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE, KEY_READ, KEY_WRITE, REG_DWORD,
+    REG_OPTION_NON_VOLATILE, REG_SZ, REG_VALUE_TYPE,
 };
 
 use super::error::from_win32_error;
@@ -159,6 +160,198 @@ pub fn delete_hklm_value(subkey: &str, name: &str, operation: &str) -> Result<()
     }
 
     Ok(())
+}
+
+pub fn enum_hklm_subkeys(subkey: &str, operation: &str) -> Result<Vec<String>, String> {
+    let key = open_hklm(subkey, KEY_READ, operation)?;
+    let mut names = Vec::new();
+    for index in 0..512 {
+        let mut name = [0u16; 256];
+        let mut name_len = name.len() as u32;
+        let status = unsafe {
+            RegEnumKeyExW(
+                key,
+                index,
+                Some(PWSTR(name.as_mut_ptr())),
+                &mut name_len,
+                None,
+                None,
+                None,
+                None,
+            )
+        };
+        if status != ERROR_SUCCESS {
+            break;
+        }
+        if let Ok(value) = String::from_utf16(&name[..name_len as usize]) {
+            if !value.is_empty() {
+                names.push(value);
+            }
+        }
+    }
+    unsafe {
+        let _ = RegCloseKey(key);
+    }
+    Ok(names)
+}
+
+pub fn get_hklm_sz(subkey: &str, name: &str, operation: &str) -> Result<Option<String>, String> {
+    let key = match open_hklm(subkey, KEY_READ, operation) {
+        Ok(key) => key,
+        Err(_) => return Ok(None),
+    };
+    let result = query_sz(key, name);
+    unsafe {
+        let _ = RegCloseKey(key);
+    }
+    result
+}
+
+pub fn set_existing_hklm_number(
+    subkey: &str,
+    name: &str,
+    value: u32,
+    operation: &str,
+) -> Result<bool, String> {
+    let key = match open_hklm(subkey, KEY_READ | KEY_WRITE, operation) {
+        Ok(key) => key,
+        Err(_) => return Ok(false),
+    };
+    let result = set_existing_number(key, name, value, operation);
+    unsafe {
+        let _ = RegCloseKey(key);
+    }
+    result
+}
+
+fn open_hklm(
+    subkey: &str,
+    access: windows::Win32::System::Registry::REG_SAM_FLAGS,
+    operation: &str,
+) -> Result<HKEY, String> {
+    let subkey: Vec<u16> = subkey.encode_utf16().chain(std::iter::once(0)).collect();
+    let mut key = HKEY::default();
+    let status = unsafe {
+        RegOpenKeyExW(
+            HKEY_LOCAL_MACHINE,
+            windows::core::PCWSTR(subkey.as_ptr()),
+            Some(0),
+            access,
+            &mut key,
+        )
+    };
+    if status != ERROR_SUCCESS {
+        return Err(from_win32_error(operation, status));
+    }
+    Ok(key)
+}
+
+fn query_sz(key: HKEY, name: &str) -> Result<Option<String>, String> {
+    let name: Vec<u16> = name.encode_utf16().chain(std::iter::once(0)).collect();
+    let mut value_type = REG_VALUE_TYPE::default();
+    let mut size = 0u32;
+    let status = unsafe {
+        RegQueryValueExW(
+            key,
+            windows::core::PCWSTR(name.as_ptr()),
+            None,
+            Some(&mut value_type),
+            None,
+            Some(&mut size),
+        )
+    };
+    if status == ERROR_FILE_NOT_FOUND || size == 0 {
+        return Ok(None);
+    }
+    if status != ERROR_SUCCESS {
+        return Ok(None);
+    }
+    let mut buffer = vec![0u8; size as usize];
+    let status = unsafe {
+        RegQueryValueExW(
+            key,
+            windows::core::PCWSTR(name.as_ptr()),
+            None,
+            Some(&mut value_type),
+            Some(buffer.as_mut_ptr()),
+            Some(&mut size),
+        )
+    };
+    if status != ERROR_SUCCESS || value_type != REG_SZ {
+        return Ok(None);
+    }
+    let utf16: Vec<u16> = buffer
+        .chunks_exact(2)
+        .map(|chunk| u16::from_le_bytes([chunk[0], chunk[1]]))
+        .take_while(|unit| *unit != 0)
+        .collect();
+    Ok(String::from_utf16(&utf16).ok())
+}
+
+fn query_type(key: HKEY, name: &str) -> Option<REG_VALUE_TYPE> {
+    let name: Vec<u16> = name.encode_utf16().chain(std::iter::once(0)).collect();
+    let mut value_type = REG_VALUE_TYPE::default();
+    let mut size = 0u32;
+    let status = unsafe {
+        RegQueryValueExW(
+            key,
+            windows::core::PCWSTR(name.as_ptr()),
+            None,
+            Some(&mut value_type),
+            None,
+            Some(&mut size),
+        )
+    };
+    if status == ERROR_SUCCESS {
+        Some(value_type)
+    } else {
+        None
+    }
+}
+
+fn set_existing_number(
+    key: HKEY,
+    name: &str,
+    value: u32,
+    operation: &str,
+) -> Result<bool, String> {
+    let Some(value_type) = query_type(key, name) else {
+        return Ok(false);
+    };
+    let name_wide: Vec<u16> = name.encode_utf16().chain(std::iter::once(0)).collect();
+    let status = if value_type == REG_DWORD {
+        unsafe {
+            RegSetValueExW(
+                key,
+                windows::core::PCWSTR(name_wide.as_ptr()),
+                None,
+                REG_DWORD,
+                Some(&value.to_le_bytes()),
+            )
+        }
+    } else if value_type == REG_SZ {
+        let data: Vec<u8> = value
+            .to_string()
+            .encode_utf16()
+            .chain(std::iter::once(0))
+            .flat_map(u16::to_le_bytes)
+            .collect();
+        unsafe {
+            RegSetValueExW(
+                key,
+                windows::core::PCWSTR(name_wide.as_ptr()),
+                None,
+                REG_SZ,
+                Some(&data),
+            )
+        }
+    } else {
+        return Ok(false);
+    };
+    if status != ERROR_SUCCESS {
+        return Err(from_win32_error(operation, status));
+    }
+    Ok(true)
 }
 
 #[cfg(test)]

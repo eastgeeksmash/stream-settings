@@ -2,6 +2,7 @@ import type React from 'react';
 import { Button } from '../ui/button';
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
+import { ActionTooltip } from '@/components/action-tooltip';
 import { invokeAction, showErrorToast, showSuccessToast } from '@/lib/invoke';
 
 type Action = {
@@ -9,6 +10,7 @@ type Action = {
   label: string;
   success: string;
   failure: string;
+  description: string;
 };
 
 const actions: Action[] = [
@@ -17,30 +19,35 @@ const actions: Action[] = [
     label: 'Discordログアウト',
     success: 'Discordのログアウトが完了しました',
     failure: 'Discordのログアウトに失敗しました',
+    description: 'Discordを終了し、このPCからログアウトします。次の人が入れなくなります。',
   },
   {
     command: 'logout_chrome',
     label: 'Chromeログアウト',
     success: 'Chromeのログアウトが完了しました',
     failure: 'Chromeのログアウトに失敗しました',
+    description: 'ブラウザでGoogleアカウントからログアウトします。',
   },
   {
     command: 'delete_download_directory',
     label: 'ダウンロードディレクトリを削除',
     success: 'ダウンロードディレクトリの削除が完了しました',
     failure: 'ダウンロードディレクトリの削除に失敗しました',
+    description: 'ダウンロードフォルダの中身をすべて消します。フォルダ自体は残ります。',
   },
   {
     command: 'purge_obs_settings',
     label: 'OBS設定を削除',
     success: 'OBS設定の削除が完了しました',
     failure: 'OBS設定の削除に失敗しました',
+    description: 'OBSを終了し、配信ソフトの設定を初期状態に戻します。シーンなども消えます。',
   },
   {
     command: 'purge_vmix_settings',
     label: 'vMix設定を削除',
     success: 'vMix設定の削除が完了しました',
     failure: 'vMix設定の削除に失敗しました',
+    description: 'vMixを終了し、設定を初期状態に戻します。',
   },
 ];
 
@@ -67,18 +74,20 @@ export const CleanupPage: React.FC = () => {
           const loading = loadingCommand === action.command;
           return (
             <li key={action.command}>
-              <Button
-                type="button"
-                className="w-full"
-                variant="default"
-                disabled={loading}
-                onClick={() => {
-                  void run(action);
-                }}
-              >
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {action.label}
-              </Button>
+              <ActionTooltip text={action.description}>
+                <Button
+                  type="button"
+                  className="w-full"
+                  variant="default"
+                  disabled={loading}
+                  onClick={() => {
+                    void run(action);
+                  }}
+                >
+                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {action.label}
+                </Button>
+              </ActionTooltip>
             </li>
           );
         })}

@@ -5,6 +5,21 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Stream Settings</title>
+    <script>
+      (function () {
+        try {
+          const theme = localStorage.getItem("stream-settings-theme") || "system";
+          const isDark =
+            theme === "dark" ||
+            (theme === "system" &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+          document.documentElement.classList.add(isDark ? "dark" : "light");
+          document.documentElement.style.colorScheme = isDark ? "dark" : "light";
+        } catch {
+          // localStorage may be unavailable in restricted WebViews
+        }
+      })();
+    </script>
   </head>
 
   <body>

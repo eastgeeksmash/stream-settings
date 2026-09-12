@@ -11,6 +11,16 @@ fn change_power_settings() -> Result<(), String> {
 }
 
 #[tauri::command]
+fn is_elevated() -> bool {
+    winops::is_elevated()
+}
+
+#[tauri::command]
+fn relaunch_as_admin() -> Result<(), String> {
+    winops::relaunch_as_admin()
+}
+
+#[tauri::command]
 fn logout_chrome() -> Result<(), String> {
     winops::logout_chrome()
 }
@@ -100,6 +110,16 @@ fn purge_vmix_settings() -> Result<(), String> {
     winops::purge_vmix_settings()
 }
 
+#[tauri::command]
+fn optimize_ndi_settings() -> Result<(), String> {
+    winops::optimize_ndi_settings()
+}
+
+#[tauri::command]
+fn optimize_vmix_settings() -> Result<(), String> {
+    winops::optimize_vmix_settings()
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -107,6 +127,8 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
+            is_elevated,
+            relaunch_as_admin,
             logout_discord,
             logout_chrome,
             delete_download_directory,
@@ -126,7 +148,9 @@ pub fn run() {
             disable_delivery_optimization,
             defer_windows_update,
             purge_obs_settings,
-            purge_vmix_settings
+            purge_vmix_settings,
+            optimize_ndi_settings,
+            optimize_vmix_settings
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

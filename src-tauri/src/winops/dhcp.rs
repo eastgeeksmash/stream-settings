@@ -1,17 +1,27 @@
 use serde::Serialize;
-use windows::Win32::Foundation::{ERROR_BUFFER_OVERFLOW, ERROR_SUCCESS};
+use windows::core::w;
+use windows::Win32::Foundation::{
+    ERROR_BUFFER_OVERFLOW, ERROR_INSUFFICIENT_BUFFER, ERROR_SUCCESS, WIN32_ERROR,
+};
 use windows::Win32::NetworkManagement::IpHelper::{
-    GetAdaptersAddresses, IpRenewAddress, GET_ADAPTERS_ADDRESSES_FLAGS, IP_ADAPTER_ADDRESSES_LH,
-    IP_ADAPTER_INDEX_MAP,
+    GetAdaptersAddresses, GetInterfaceInfo, IpRenewAddress, GET_ADAPTERS_ADDRESSES_FLAGS,
+    IP_ADAPTER_ADDRESSES_LH, IP_ADAPTER_INDEX_MAP, IP_INTERFACE_INFO,
 };
 use windows::Win32::NetworkManagement::Ndis::IfOperStatusUp;
 use windows::Win32::Networking::WinSock::AF_INET;
+use windows::Win32::System::Services::{
+    CloseServiceHandle, OpenSCManagerW, OpenServiceW, QueryServiceStatus, StartServiceW,
+    SC_MANAGER_CONNECT, SERVICE_QUERY_STATUS, SERVICE_RUNNING, SERVICE_START,
+    SERVICE_START_PENDING,
+};
 
-use super::error::from_win32_error;
+use super::com::ComInitializer;
+use super::error::{from_win32_error, from_windows_error, is_class_not_registered};
 use super::registry::{delete_hklm_value, set_hklm_dword};
 
 const OPERATION: &str = "DHCP設定の変更に失敗しました";
 const IF_TYPE_SOFTWARE_LOOPBACK: u32 = 24;
+const IF_TYPE_ETHERNET_CSMACD: u32 = 6;
 
 #[derive(Debug, Serialize, Clone, PartialEq, Eq)]
 pub struct NetworkAdapterInfo {
@@ -80,9 +90,21 @@ pub fn enable_dhcp_for_connected_adapters() -> Result<(), String> {
 struct AdapterRecord {
     info: NetworkAdapterInfo,
     if_index: u32,
+    if_type: u32,
+}
+
+pub(super) fn ethernet_adapter_ids() -> Result<Vec<String>, String> {
+    Ok(collect_adapters()?
+        .into_iter()
+        .filter(|adapter| adapter.if_type == IF_TYPE_ETHERNET_CSMACD)
+        .map(|adapter| adapter.info.id)
+        .collect())
 }
 
 fn enable_dhcp_for_adapter(adapter: &AdapterRecord) -> Result<(), String> {
+    let _com = ComInitializer::new(OPERATION)?;
+    let _ = ensure_dhcp_client_running();
+
     let interface_key = format!(
         r"SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\{}",
         adapter.info.id.trim_matches(|c| c == '{' || c == '}')
@@ -104,37 +126,110 @@ fn enable_dhcp_for_adapter(adapter: &AdapterRecord) -> Result<(), String> {
     delete_hklm_value(&registry_key, "SubnetMask", OPERATION)?;
     delete_hklm_value(&registry_key, "DefaultGateway", OPERATION)?;
 
-    let adapter_name: Vec<u16> = adapter
-        .info
-        .id
-        .encode_utf16()
-        .chain(std::iter::once(0))
-        .collect();
-    let status =
-        unsafe { DhcpNotifyConfigChange(std::ptr::null(), adapter_name.as_ptr(), 0, 0, 0, 0, 1) };
-    if status != 0 {
-        return Err(from_win32_error(
-            OPERATION,
-            windows::Win32::Foundation::WIN32_ERROR(status),
-        ));
+    let notify_status = notify_dhcp_enabled(&adapter.info.id);
+    if notify_status != 0 && !is_class_not_registered(notify_status) {
+        return Err(from_win32_error(OPERATION, WIN32_ERROR(notify_status)));
+    }
+
+    let mut map = interface_map_for_adapter(adapter)?;
+    let renew = unsafe { IpRenewAddress(&mut map) };
+    if renew != ERROR_SUCCESS.0 && notify_status != 0 {
+        return Err(from_win32_error(OPERATION, WIN32_ERROR(renew)));
+    }
+
+    Ok(())
+}
+
+fn notify_dhcp_enabled(adapter_id: &str) -> u32 {
+    for name in adapter_name_candidates(adapter_id) {
+        let adapter_name: Vec<u16> = name.encode_utf16().chain(std::iter::once(0)).collect();
+        let status =
+            unsafe { DhcpNotifyConfigChange(std::ptr::null(), adapter_name.as_ptr(), 0, 0, 0, 0, 1) };
+        if status == 0 || !is_class_not_registered(status) {
+            return status;
+        }
+    }
+    0x8004_0154
+}
+
+fn adapter_name_candidates(adapter_id: &str) -> Vec<String> {
+    let trimmed = adapter_id.trim_matches(|c| c == '{' || c == '}').to_string();
+    let braced = format!("{{{trimmed}}}");
+    vec![adapter_id.to_string(), braced, trimmed]
+}
+
+fn interface_map_for_adapter(adapter: &AdapterRecord) -> Result<IP_ADAPTER_INDEX_MAP, String> {
+    if let Some(map) = interface_map_from_system(adapter.if_index)? {
+        return Ok(map);
     }
 
     let mut map = IP_ADAPTER_INDEX_MAP {
         Index: adapter.if_index,
         Name: [0; 128],
     };
-    let name_utf16: Vec<u16> = adapter.info.id.encode_utf16().collect();
+    let device_name = format!(
+        r"\DEVICE\TCPIP_{}",
+        if adapter.info.id.starts_with('{') {
+            adapter.info.id.clone()
+        } else {
+            format!("{{{}}}", adapter.info.id)
+        }
+    );
+    let name_utf16: Vec<u16> = device_name.encode_utf16().collect();
     let copy_len = name_utf16.len().min(map.Name.len().saturating_sub(1));
     map.Name[..copy_len].copy_from_slice(&name_utf16[..copy_len]);
+    Ok(map)
+}
 
-    let renew = unsafe { IpRenewAddress(&map) };
-    if renew != ERROR_SUCCESS.0 {
-        return Err(from_win32_error(
-            OPERATION,
-            windows::Win32::Foundation::WIN32_ERROR(renew),
-        ));
+fn interface_map_from_system(if_index: u32) -> Result<Option<IP_ADAPTER_INDEX_MAP>, String> {
+    let mut size = 0u32;
+    let first = unsafe { GetInterfaceInfo(None, &mut size) };
+    if first != ERROR_INSUFFICIENT_BUFFER.0 && first != ERROR_SUCCESS.0 {
+        return Ok(None);
     }
 
+    let mut buffer = vec![0u8; size.max(std::mem::size_of::<IP_INTERFACE_INFO>() as u32) as usize];
+    let info = buffer.as_mut_ptr().cast::<IP_INTERFACE_INFO>();
+    let status = unsafe { GetInterfaceInfo(Some(&mut *info), &mut size) };
+    if status != ERROR_SUCCESS.0 {
+        return Ok(None);
+    }
+
+    let count = unsafe { (*info).NumAdapters }.max(0) as usize;
+    let adapters = unsafe { std::slice::from_raw_parts((*info).Adapter.as_ptr(), count) };
+    Ok(adapters
+        .iter()
+        .find(|map| map.Index == if_index)
+        .cloned())
+}
+
+fn ensure_dhcp_client_running() -> Result<(), String> {
+    let scm = unsafe { OpenSCManagerW(None, None, SC_MANAGER_CONNECT) }
+        .map_err(|error| from_windows_error(OPERATION, error))?;
+    let service = unsafe { OpenServiceW(scm, w!("Dhcp"), SERVICE_QUERY_STATUS | SERVICE_START) };
+    let service = match service {
+        Ok(service) => service,
+        Err(_) => {
+            unsafe {
+                let _ = CloseServiceHandle(scm);
+            }
+            return Ok(());
+        }
+    };
+
+    let mut status = Default::default();
+    let queried = unsafe { QueryServiceStatus(service, &mut status) };
+    if queried.is_ok()
+        && status.dwCurrentState != SERVICE_RUNNING
+        && status.dwCurrentState != SERVICE_START_PENDING
+    {
+        let _ = unsafe { StartServiceW(service, None) };
+    }
+
+    unsafe {
+        let _ = CloseServiceHandle(service);
+        let _ = CloseServiceHandle(scm);
+    }
     Ok(())
 }
 
@@ -184,6 +279,7 @@ fn collect_adapters() -> Result<Vec<AdapterRecord>, String> {
                         connected: adapter.OperStatus == IfOperStatusUp,
                     },
                     if_index,
+                    if_type: adapter.IfType,
                 });
             }
         }
@@ -208,5 +304,12 @@ mod tests {
         };
         assert_eq!(adapter.name, "Ethernet");
         assert!(!adapter.dhcp_enabled);
+    }
+
+    #[test]
+    fn dhcp_notify_accepts_guid_with_and_without_braces() {
+        let names = adapter_name_candidates("{abc-def}");
+        assert!(names.iter().any(|name| name == "{abc-def}"));
+        assert!(names.iter().any(|name| name == "abc-def"));
     }
 }

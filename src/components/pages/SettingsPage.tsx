@@ -4,14 +4,21 @@ import { Label } from '../ui/label';
 import { Button } from '../ui/button';
 import { useTheme } from '../theme-provider';
 import { Moon, Sun, Loader2 } from "lucide-react";
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { check } from '@tauri-apps/plugin-updater';
 import { relaunch } from '@tauri-apps/plugin-process';
 import { formatInvokeError, showErrorToast, showSuccessToast } from '@/lib/invoke';
 
 export const SettingsPage: React.FC = () => {
-  const { theme, setTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
   const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const [themeReady, setThemeReady] = useState(false);
+
+  useEffect(() => {
+    setThemeReady(true);
+  }, []);
+
+  const isDark = themeReady && resolvedTheme === "dark";
 
   const checkForUpdates = async () => {
     setCheckingUpdate(true);
@@ -48,11 +55,11 @@ export const SettingsPage: React.FC = () => {
           <div className="flex items-center space-x-2">
             <Switch
               id="theme-mode"
-              checked={theme === "dark"}
+              checked={isDark}
               onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
             />
             <Label htmlFor="theme-mode" className="flex items-center gap-2">
-              {theme === "dark" ? (
+              {isDark ? (
                 <>
                   <Moon className="h-4 w-4" />
                   ダークモード

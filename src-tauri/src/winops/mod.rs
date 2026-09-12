@@ -1,3 +1,4 @@
+mod admin;
 mod com;
 mod desktop;
 mod dhcp;
@@ -5,6 +6,7 @@ mod error;
 mod folders;
 mod network;
 mod onedrive;
+mod optimize;
 mod power;
 mod process;
 mod purge;
@@ -16,6 +18,7 @@ mod windows_update;
 #[cfg(test)]
 mod smoke;
 
+pub use admin::{is_elevated, relaunch_as_admin};
 pub use desktop::{
     disable_aero, hide_desktop_icons_and_taskbar, restore_aero, restore_desktop_icons_and_taskbar,
     set_solid_wallpaper,
@@ -26,6 +29,7 @@ pub use dhcp::{
 pub use folders::delete_download_directory;
 pub use network::make_network_private;
 pub use onedrive::disable_onedrive_sync;
+pub use optimize::{optimize_ndi_settings, optimize_vmix_settings};
 pub use power::change_power_settings;
 pub use process::logout_discord;
 pub use purge::{purge_obs_settings, purge_vmix_settings};

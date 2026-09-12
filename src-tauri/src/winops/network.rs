@@ -1,12 +1,12 @@
 use windows::Win32::Foundation::S_FALSE;
 use windows::Win32::Networking::NetworkListManager::{
-    INetwork, INetworkListManager, NetworkListManager, NLM_ENUM_NETWORK_ALL,
-    NLM_NETWORK_CATEGORY_PRIVATE, NLM_NETWORK_CATEGORY_PUBLIC,
+    INetwork, INetworkListManager, NetworkListManager, NLM_CONNECTIVITY_DISCONNECTED,
+    NLM_ENUM_NETWORK_CONNECTED, NLM_NETWORK_CATEGORY_PRIVATE, NLM_NETWORK_CATEGORY_PUBLIC,
 };
 use windows::Win32::System::Com::{CoCreateInstance, CLSCTX_ALL};
 
 use super::com::ComInitializer;
-use super::error::from_windows_error;
+use super::error::{from_windows_error, is_skippable_network_error};
 
 const OPERATION: &str = "ネットワーク設定の変更に失敗しました";
 
@@ -19,7 +19,7 @@ pub fn make_network_private() -> Result<(), String> {
 
     let enumerator = unsafe {
         manager
-            .GetNetworks(NLM_ENUM_NETWORK_ALL)
+            .GetNetworks(NLM_ENUM_NETWORK_CONNECTED)
             .map_err(|error| from_windows_error(OPERATION, error))?
     };
 
@@ -37,6 +37,7 @@ pub fn make_network_private() -> Result<(), String> {
                 }
             }
             Err(error) if error.code() == S_FALSE => break,
+            Err(error) if is_skippable_network_error(&error) => break,
             Err(error) => return Err(from_windows_error(OPERATION, error)),
         }
     }
@@ -49,19 +50,26 @@ pub fn make_network_private() -> Result<(), String> {
 }
 
 fn set_public_network_private(network: &INetwork) -> Result<(), String> {
-    let category = unsafe {
-        network
-            .GetCategory()
-            .map_err(|error| from_windows_error(OPERATION, error))?
+    match unsafe { network.GetConnectivity() } {
+        Ok(connectivity) if connectivity == NLM_CONNECTIVITY_DISCONNECTED => return Ok(()),
+        Ok(_) => {}
+        Err(error) if is_skippable_network_error(&error) => return Ok(()),
+        Err(error) => return Err(from_windows_error(OPERATION, error)),
+    }
+
+    let category = match unsafe { network.GetCategory() } {
+        Ok(category) => category,
+        Err(error) if is_skippable_network_error(&error) => return Ok(()),
+        Err(error) => return Err(from_windows_error(OPERATION, error)),
     };
 
     if category != NLM_NETWORK_CATEGORY_PUBLIC {
         return Ok(());
     }
 
-    unsafe {
-        network
-            .SetCategory(NLM_NETWORK_CATEGORY_PRIVATE)
-            .map_err(|error| from_windows_error(OPERATION, error))
+    match unsafe { network.SetCategory(NLM_NETWORK_CATEGORY_PRIVATE) } {
+        Ok(()) => Ok(()),
+        Err(error) if is_skippable_network_error(&error) => Ok(()),
+        Err(error) => Err(from_windows_error(OPERATION, error)),
     }
 }
