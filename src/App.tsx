@@ -4,6 +4,7 @@ import "./App.css";
 import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { AdminWarning } from "./components/admin-warning"
+import { StartupUpdateCheck } from "./components/startup-update-check"
 import { ThemeProvider } from "./components/theme-provider"
 import {
   Sidebar,
@@ -29,6 +30,7 @@ function App() {
       <TooltipProvider>
         <main className="container">
           <Toaster />
+          <StartupUpdateCheck />
           <AdminWarning />
 
           <div className="flex h-screen">

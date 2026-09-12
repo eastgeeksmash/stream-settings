@@ -5,9 +5,7 @@ import { Button } from '../ui/button';
 import { useTheme } from '../theme-provider';
 import { Moon, Sun, Loader2 } from "lucide-react";
 import { useEffect, useState } from 'react';
-import { check } from '@tauri-apps/plugin-updater';
-import { relaunch } from '@tauri-apps/plugin-process';
-import { formatInvokeError, showErrorToast, showSuccessToast } from '@/lib/invoke';
+import { checkAndApplyUpdate } from '@/lib/updater';
 
 export const SettingsPage: React.FC = () => {
   const { resolvedTheme, setTheme } = useTheme();
@@ -23,17 +21,10 @@ export const SettingsPage: React.FC = () => {
   const checkForUpdates = async () => {
     setCheckingUpdate(true);
     try {
-      const update = await check();
-      if (!update) {
-        showSuccessToast('最新バージョンです');
-        return;
-      }
-
-      await update.downloadAndInstall();
-      showSuccessToast('更新をインストールしました。再起動します');
-      await relaunch();
-    } catch (error) {
-      showErrorToast(`更新の確認に失敗しました: ${formatInvokeError(error)}`);
+      await checkAndApplyUpdate({
+        notifyWhenLatest: true,
+        notifyOnError: true,
+      });
     } finally {
       setCheckingUpdate(false);
     }
