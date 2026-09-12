@@ -3,7 +3,8 @@ use std::path::{Path, PathBuf};
 use windows::core::GUID;
 use windows::Win32::System::Com::CoTaskMemFree;
 use windows::Win32::UI::Shell::{
-    FOLDERID_Downloads, FOLDERID_LocalAppData, FOLDERID_RoamingAppData, SHGetKnownFolderPath,
+    FOLDERID_Downloads, FOLDERID_LocalAppData, FOLDERID_ProgramData, FOLDERID_RoamingAppData,
+    SHGetKnownFolderPath,
     KF_FLAG_DEFAULT,
 };
 
@@ -38,11 +39,22 @@ pub fn roaming_app_data(operation: &str) -> Result<PathBuf, String> {
     known_folder(&FOLDERID_RoamingAppData, operation)
 }
 
+pub fn program_data(operation: &str) -> Result<PathBuf, String> {
+    known_folder(&FOLDERID_ProgramData, operation)
+}
+
 pub fn remove_tree_if_exists(path: &Path, operation: &str) -> Result<(), String> {
     if !path.exists() {
         return Ok(());
     }
     std::fs::remove_dir_all(path).map_err(|error| format!("{operation}: {error}"))
+}
+
+pub fn remove_file_if_exists(path: &Path, operation: &str) -> Result<(), String> {
+    if !path.exists() {
+        return Ok(());
+    }
+    std::fs::remove_file(path).map_err(|error| format!("{operation}: {error}"))
 }
 
 fn known_downloads_path() -> Result<PathBuf, String> {

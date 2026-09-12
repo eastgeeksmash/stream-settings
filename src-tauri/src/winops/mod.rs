@@ -34,7 +34,7 @@ pub use onedrive::disable_onedrive_sync;
 pub use optimize::{optimize_ndi_settings, optimize_vmix_settings};
 pub use power::change_power_settings;
 pub use process::logout_discord;
-pub use purge::{purge_obs_settings, purge_vmix_settings};
+pub use purge::{purge_obs_settings, purge_vmix_settings, reset_vmix_registration};
 pub use registry::disable_windows_notifications;
 pub use shell::logout_chrome;
 pub use sticky_keys::disable_sticky_keys;
