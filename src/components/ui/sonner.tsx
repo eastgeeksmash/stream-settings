@@ -8,6 +8,15 @@ const Toaster = ({ ...props }: ToasterProps) => {
     <Sonner
       theme={theme as ToasterProps["theme"]}
       className="toaster group"
+      closeButton
+      swipeDirections={[]}
+      toastOptions={{
+        classNames: {
+          toast: "select-text cursor-text",
+          title: "select-text whitespace-pre-wrap break-all",
+          description: "select-text whitespace-pre-wrap break-all",
+        },
+      }}
       style={
         {
           "--normal-bg": "var(--popover)",

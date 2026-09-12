@@ -1,9 +1,8 @@
 import type React from 'react';
 import { Button } from '../ui/button';
-import { invoke } from '@tauri-apps/api/core';
-import { toast } from 'sonner';
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
+import { invokeAction, showErrorToast, showSuccessToast } from '@/lib/invoke';
 
 type Action = {
   command: string;
@@ -48,19 +47,15 @@ const actions: Action[] = [
 export const CleanupPage: React.FC = () => {
   const [loadingCommand, setLoadingCommand] = useState<string | null>(null);
 
-  const run = (action: Action) => {
+  const run = async (action: Action) => {
     setLoadingCommand(action.command);
-    invoke(action.command)
-      .then(() => {
-        toast.success(action.success);
-      })
-      .catch((error: Error) => {
-        console.error(error);
-        toast.error(`${action.failure}: ${error.message}`);
-      })
-      .finally(() => {
-        setLoadingCommand(null);
-      });
+    const result = await invokeAction(action.command, action.failure);
+    if (result.ok) {
+      showSuccessToast(action.success);
+    } else {
+      showErrorToast(result.message);
+    }
+    setLoadingCommand(null);
   };
 
   return (
@@ -77,7 +72,9 @@ export const CleanupPage: React.FC = () => {
                 className="w-full"
                 variant="default"
                 disabled={loading}
-                onClick={() => run(action)}
+                onClick={() => {
+                  void run(action);
+                }}
               >
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {action.label}

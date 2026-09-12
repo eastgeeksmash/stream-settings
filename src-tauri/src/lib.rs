@@ -46,6 +46,31 @@ fn hide_desktop_icons_and_taskbar() -> Result<(), String> {
 }
 
 #[tauri::command]
+fn restore_aero() -> Result<(), String> {
+    winops::restore_aero()
+}
+
+#[tauri::command]
+fn restore_desktop_icons_and_taskbar() -> Result<(), String> {
+    winops::restore_desktop_icons_and_taskbar()
+}
+
+#[tauri::command]
+fn list_network_adapters() -> Result<Vec<winops::NetworkAdapterInfo>, String> {
+    winops::list_network_adapters()
+}
+
+#[tauri::command]
+fn enable_dhcp(adapter_id: String) -> Result<(), String> {
+    winops::enable_dhcp(adapter_id)
+}
+
+#[tauri::command]
+fn enable_dhcp_for_connected_adapters() -> Result<(), String> {
+    winops::enable_dhcp_for_connected_adapters()
+}
+
+#[tauri::command]
 fn disable_sticky_keys() -> Result<(), String> {
     winops::disable_sticky_keys()
 }
@@ -79,6 +104,8 @@ fn purge_vmix_settings() -> Result<(), String> {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             logout_discord,
             logout_chrome,
@@ -89,6 +116,11 @@ pub fn run() {
             disable_aero,
             set_solid_wallpaper,
             hide_desktop_icons_and_taskbar,
+            restore_aero,
+            restore_desktop_icons_and_taskbar,
+            list_network_adapters,
+            enable_dhcp,
+            enable_dhcp_for_connected_adapters,
             disable_sticky_keys,
             disable_onedrive_sync,
             disable_delivery_optimization,

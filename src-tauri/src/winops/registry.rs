@@ -1,8 +1,8 @@
 use windows::core::w;
-use windows::Win32::Foundation::ERROR_SUCCESS;
+use windows::Win32::Foundation::{ERROR_FILE_NOT_FOUND, ERROR_SUCCESS};
 use windows::Win32::System::Registry::{
-    RegCloseKey, RegCreateKeyExW, RegSetValueExW, HKEY, HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE,
-    KEY_WRITE, REG_DWORD, REG_OPTION_NON_VOLATILE, REG_SZ,
+    RegCloseKey, RegCreateKeyExW, RegDeleteValueW, RegSetValueExW, HKEY, HKEY_CURRENT_USER,
+    HKEY_LOCAL_MACHINE, KEY_WRITE, REG_DWORD, REG_OPTION_NON_VOLATILE, REG_SZ,
 };
 
 use super::error::from_win32_error;
@@ -121,6 +121,40 @@ fn set_value(
     }
 
     if status != ERROR_SUCCESS {
+        return Err(from_win32_error(operation, status));
+    }
+
+    Ok(())
+}
+
+pub fn delete_hklm_value(subkey: &str, name: &str, operation: &str) -> Result<(), String> {
+    let subkey: Vec<u16> = subkey.encode_utf16().chain(std::iter::once(0)).collect();
+    let name: Vec<u16> = name.encode_utf16().chain(std::iter::once(0)).collect();
+    let mut key = HKEY::default();
+
+    let status = unsafe {
+        RegCreateKeyExW(
+            HKEY_LOCAL_MACHINE,
+            windows::core::PCWSTR(subkey.as_ptr()),
+            None,
+            w!(""),
+            REG_OPTION_NON_VOLATILE,
+            KEY_WRITE,
+            None,
+            &mut key,
+            None,
+        )
+    };
+    if status != ERROR_SUCCESS {
+        return Err(from_win32_error(operation, status));
+    }
+
+    let status = unsafe { RegDeleteValueW(key, windows::core::PCWSTR(name.as_ptr())) };
+    unsafe {
+        let _ = RegCloseKey(key);
+    }
+
+    if status != ERROR_SUCCESS && status != ERROR_FILE_NOT_FOUND {
         return Err(from_win32_error(operation, status));
     }
 

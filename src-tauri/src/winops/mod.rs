@@ -1,5 +1,6 @@
 mod com;
 mod desktop;
+mod dhcp;
 mod error;
 mod folders;
 mod network;
@@ -15,7 +16,13 @@ mod windows_update;
 #[cfg(test)]
 mod smoke;
 
-pub use desktop::{disable_aero, hide_desktop_icons_and_taskbar, set_solid_wallpaper};
+pub use desktop::{
+    disable_aero, hide_desktop_icons_and_taskbar, restore_aero, restore_desktop_icons_and_taskbar,
+    set_solid_wallpaper,
+};
+pub use dhcp::{
+    enable_dhcp, enable_dhcp_for_connected_adapters, list_network_adapters, NetworkAdapterInfo,
+};
 pub use folders::delete_download_directory;
 pub use network::make_network_private;
 pub use onedrive::disable_onedrive_sync;

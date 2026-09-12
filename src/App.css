@@ -122,3 +122,12 @@
     @apply bg-background text-foreground;
   }
 }
+
+[data-sonner-toast] {
+  user-select: text;
+  cursor: text;
+}
+
+[data-sonner-toast][data-swiping="true"] {
+  transform: none !important;
+}
