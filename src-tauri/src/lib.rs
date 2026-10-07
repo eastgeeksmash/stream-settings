@@ -1,5 +1,9 @@
 mod winops;
 
+use std::path::PathBuf;
+
+use tauri::Manager;
+
 #[tauri::command]
 fn make_network_private() -> Result<(), String> {
     winops::make_network_private()
@@ -130,6 +134,97 @@ fn optimize_nvidia_settings() -> Result<(), String> {
     winops::optimize_nvidia_settings()
 }
 
+#[tauri::command]
+fn disable_call_ducking() -> Result<(), String> {
+    winops::disable_call_ducking()
+}
+
+#[tauri::command]
+fn set_no_sounds_scheme() -> Result<(), String> {
+    winops::set_no_sounds_scheme()
+}
+
+#[tauri::command]
+fn disable_telemetry() -> Result<(), String> {
+    winops::disable_telemetry()
+}
+
+#[tauri::command]
+fn disable_suggestions() -> Result<(), String> {
+    winops::disable_suggestions()
+}
+
+#[tauri::command]
+fn disable_copilot() -> Result<(), String> {
+    winops::disable_copilot()
+}
+
+#[tauri::command]
+fn disable_recall_and_click_to_do() -> Result<(), String> {
+    winops::disable_recall_and_click_to_do()
+}
+
+#[tauri::command]
+fn disable_widgets() -> Result<(), String> {
+    winops::disable_widgets()
+}
+
+#[tauri::command]
+fn disable_bing_search() -> Result<(), String> {
+    winops::disable_bing_search()
+}
+
+#[tauri::command]
+fn disable_fast_startup() -> Result<(), String> {
+    winops::disable_fast_startup()
+}
+
+#[tauri::command]
+fn disable_storage_sense() -> Result<(), String> {
+    winops::disable_storage_sense()
+}
+
+#[tauri::command]
+async fn install_winget_package(package_id: String) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || winops::install_winget_package(&package_id))
+        .await
+        .map_err(|error| format!("パッケージのインストールに失敗しました: {error}"))?
+}
+
+#[tauri::command]
+async fn remove_debloat_group(app: tauri::AppHandle, group: String) -> Result<(), String> {
+    let dir = debloat_dir(&app)?;
+    let winget = winops::resolve_winget().ok();
+    tauri::async_runtime::spawn_blocking(move || {
+        winops::remove_debloat_group(&dir, &group, winget.as_deref())
+    })
+    .await
+    .map_err(|error| format!("不要アプリの削除に失敗しました: {error}"))?
+}
+
+fn debloat_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    let candidates = [
+        app.path()
+            .resolve("resources/debloat/apps.json", tauri::path::BaseDirectory::Resource),
+        app.path()
+            .resolve("debloat/apps.json", tauri::path::BaseDirectory::Resource),
+    ];
+    for candidate in candidates.into_iter().flatten() {
+        if candidate.is_file() {
+            if let Some(parent) = candidate.parent() {
+                return Ok(parent.to_path_buf());
+            }
+        }
+    }
+
+    let dev = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources").join("debloat");
+    if dev.join("apps.json").is_file() && dev.join("remove-apps.ps1").is_file() {
+        return Ok(dev);
+    }
+
+    Err("不要アプリの削除に失敗しました: 削除スクリプトが見つかりません。".to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -162,7 +257,19 @@ pub fn run() {
             reset_vmix_registration,
             optimize_ndi_settings,
             optimize_vmix_settings,
-            optimize_nvidia_settings
+            optimize_nvidia_settings,
+            disable_call_ducking,
+            set_no_sounds_scheme,
+            disable_telemetry,
+            disable_suggestions,
+            disable_copilot,
+            disable_recall_and_click_to_do,
+            disable_widgets,
+            disable_bing_search,
+            disable_fast_startup,
+            disable_storage_sense,
+            install_winget_package,
+            remove_debloat_group
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

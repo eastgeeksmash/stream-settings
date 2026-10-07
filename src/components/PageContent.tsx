@@ -2,6 +2,7 @@ import type React from 'react';
 import type { Page } from '../types/page';
 import { SetupPage } from './pages/SetupPage';
 import { CleanupPage } from './pages/CleanupPage';
+import { InstallPage } from './pages/InstallPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { AboutPage } from './pages/AboutPage';
 
@@ -15,6 +16,8 @@ export const PageContent: React.FC<PageContentProps> = ({ currentPage }) => {
       return <SetupPage />;
     case 'cleanup':
       return <CleanupPage />;
+    case 'install':
+      return <InstallPage />;
     case 'settings':
       return <SettingsPage />;
     case 'about':

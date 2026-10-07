@@ -1,9 +1,22 @@
 import type React from 'react';
+import { useEffect, useState } from 'react';
+import { getVersion } from '@tauri-apps/api/app';
 
 export const AboutPage: React.FC = () => {
+  const [version, setVersion] = useState<string | null>(null);
+
+  useEffect(() => {
+    void getVersion()
+      .then(setVersion)
+      .catch(() => {
+        setVersion(null);
+      });
+  }, []);
+
   return (
     <>
       <h2 className="text-2xl font-bold mb-4">About</h2>
+      {version && <p className="mb-4">バージョン {version}</p>}
       <div className="mt-6 border-t pt-4">
         <h3 className="text-xl font-semibold mb-2">Copyright</h3>
         <p>
@@ -15,7 +28,10 @@ export const AboutPage: React.FC = () => {
         <p>
           Copyright (c) 2025 EastGeekSmash
         </p>
+        <p>
+          不要アプリの削除は <a href="https://github.com/Raphire/Win11Debloat" className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">Win11Debloat</a>（MIT License）の手順を基にしています。
+        </p>
       </div>
     </>
   );
-}; 
+};

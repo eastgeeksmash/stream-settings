@@ -1,0 +1,455 @@
+{
+  "source": "Excerpted from https://github.com/Raphire/Win11Debloat Config/Apps.json (MIT)",
+  "groups": {
+    "default": [
+      {
+        "id": "Clipchamp.Clipchamp",
+        "method": "Appx"
+      },
+      {
+        "id": "Microsoft.3DBuilder",
+        "method": "Appx"
+      },
+      {
+        "id": "Microsoft.549981C3F5F10",
+        "method": "Appx"
+      },
+      {
+        "id": "Microsoft.BingFinance",
+        "method": "Appx"
+      },
+      {
+        "id": "Microsoft.BingFoodAndDrink",
+        "method": "Appx"
+      },
+      {
+        "id": "Microsoft.BingHealthAndFitness",
+        "method": "Appx"
+      },
+      {
+        "id": "Microsoft.BingNews",
+        "method": "Appx"
+      },
+      {
+        "id": "Microsoft.BingSports",
+        "method": "Appx"
+      },
+      {
+        "id": "Microsoft.BingTranslator",
+        "method": "Appx"
+      },
+      {
+        "id": "Microsoft.BingTravel",
+        "method": "Appx"
+      },
+      {
+        "id": "Microsoft.BingWeather",
+        "method": "Appx"
+      },
+      {
+        "id": "XP9CXNGPPJ97XX",
+        "method": "WinGet"
+      },
+      {
+        "id": "Microsoft.Windows.AIHub",
+        "method": "Appx"
+      },
+      {
+        "id": "Microsoft.PCManager",
+        "method": "Appx"
+      },
+      {
+        "id": "Microsoft.Getstarted",
+        "method": "Appx"
+      },
+      {
+        "id": "Microsoft.Messaging",
+        "method": "Appx"
+      },
+      {
+        "id": "Microsoft.Microsoft3DViewer",
+        "method": "Appx"
+      },
+      {
+        "id": "Microsoft.MicrosoftJournal",
+        "method": "Appx"
+      },
+      {
+        "id": "Microsoft.MicrosoftOfficeHub",
+        "method": "Appx"
+      },
+      {
+        "id": "Microsoft.MicrosoftPowerBIForWindows",
+        "method": "Appx"
+      },
+      {
+        "id": "Microsoft.MicrosoftSolitaireCollection",
+        "method": "Appx"
+      },
+      {
+        "id": "Microsoft.MicrosoftStickyNotes",
+        "method": "Appx"
+      },
+      {
+        "id": "Microsoft.MixedReality.Portal",
+        "method": "Appx"
+      },
+      {
+        "id": "Microsoft.NetworkSpeedTest",
+        "method": "Appx"
+      },
+      {
+        "id": "Microsoft.News",
+        "method": "Appx"
+      },
+      {
+        "id": "Microsoft.Office.OneNote",
+        "method": "Appx"
+      },
+      {
+        "id": "Microsoft.Office.Sway",
+        "method": "Appx"
+      },
+      {
+        "id": "Microsoft.OneConnect",
+        "method": "Appx"
+      },
+      {
+        "id": "Microsoft.Print3D",
+        "method": "Appx"
+      },
+      {
+        "id": "Microsoft.PowerAutomateDesktop",
+        "method": "Appx"
+      },
+      {
+        "id": "Microsoft.SkypeApp",
+        "method": "Appx"
+      },
+      {
+        "id": "Microsoft.Todos",
+        "method": "Appx"
+      },
+      {
+        "id": "Microsoft.Windows.DevHome",
+        "method": "Appx"
+      },
+      {
+        "id": "Microsoft.WindowsAlarms",
+        "method": "Appx"
+      },
+      {
+        "id": "Microsoft.WindowsFeedbackHub",
+        "method": "Appx"
+      },
+      {
+        "id": "Microsoft.WindowsMaps",
+        "method": "Appx"
+      },
+      {
+        "id": "Microsoft.WindowsSoundRecorder",
+        "method": "Appx"
+      },
+      {
+        "id": "Microsoft.XboxApp",
+        "method": "Appx"
+      },
+      {
+        "id": "Microsoft.ZuneVideo",
+        "method": "Appx"
+      },
+      {
+        "id": "MicrosoftCorporationII.MicrosoftFamily",
+        "method": "Appx"
+      },
+      {
+        "id": "MicrosoftCorporationII.QuickAssist",
+        "method": "Appx"
+      },
+      {
+        "id": "MicrosoftTeams",
+        "method": "Appx"
+      },
+      {
+        "id": "MSTeams",
+        "method": "Appx"
+      },
+      {
+        "id": "ACGMediaPlayer",
+        "method": "Appx"
+      },
+      {
+        "id": "ActiproSoftwareLLC",
+        "method": "Appx"
+      },
+      {
+        "id": "AdobeSystemsIncorporated.AdobePhotoshopExpress",
+        "method": "Appx"
+      },
+      {
+        "id": "Amazon.com.Amazon",
+        "method": "Appx"
+      },
+      {
+        "id": "AmazonVideo.PrimeVideo",
+        "method": "Appx"
+      },
+      {
+        "id": "Asphalt8Airborne",
+        "method": "Appx"
+      },
+      {
+        "id": "AutodeskSketchBook",
+        "method": "Appx"
+      },
+      {
+        "id": "CaesarsSlotsFreeCasino",
+        "method": "Appx"
+      },
+      {
+        "id": "COOKINGFEVER",
+        "method": "Appx"
+      },
+      {
+        "id": "CyberLinkMediaSuiteEssentials",
+        "method": "Appx"
+      },
+      {
+        "id": "DisneyMagicKingdoms",
+        "method": "Appx"
+      },
+      {
+        "id": "Disney.37853FC22B2CE",
+        "method": "Appx"
+      },
+      {
+        "id": "DrawboardPDF",
+        "method": "Appx"
+      },
+      {
+        "id": "Duolingo-LearnLanguagesforFree",
+        "method": "Appx"
+      },
+      {
+        "id": "EclipseManager",
+        "method": "Appx"
+      },
+      {
+        "id": "FACEBOOK.FACEBOOK",
+        "method": "Appx"
+      },
+      {
+        "id": "FarmVille2CountryEscape",
+        "method": "Appx"
+      },
+      {
+        "id": "Flipboard",
+        "method": "Appx"
+      },
+      {
+        "id": "HiddenCity",
+        "method": "Appx"
+      },
+      {
+        "id": "HULULLC.HULUPLUS",
+        "method": "Appx"
+      },
+      {
+        "id": "iHeartRadio",
+        "method": "Appx"
+      },
+      {
+        "id": "Facebook.Instagram",
+        "method": "Appx"
+      },
+      {
+        "id": "king.com.BubbleWitch3Saga",
+        "method": "Appx"
+      },
+      {
+        "id": "king.com.CandyCrushSaga",
+        "method": "Appx"
+      },
+      {
+        "id": "king.com.CandyCrushSodaSaga",
+        "method": "Appx"
+      },
+      {
+        "id": "LinkedInforWindows",
+        "method": "Appx"
+      },
+      {
+        "id": "MarchofEmpires",
+        "method": "Appx"
+      },
+      {
+        "id": "4DF9E0F8.Netflix",
+        "method": "Appx"
+      },
+      {
+        "id": "NYTCrossword",
+        "method": "Appx"
+      },
+      {
+        "id": "OneCalendar",
+        "method": "Appx"
+      },
+      {
+        "id": "PandoraMediaInc",
+        "method": "Appx"
+      },
+      {
+        "id": "PhototasticCollage",
+        "method": "Appx"
+      },
+      {
+        "id": "PicsArt-PhotoStudio",
+        "method": "Appx"
+      },
+      {
+        "id": "PolarrPhotoEditorAcademicEdition",
+        "method": "Appx"
+      },
+      {
+        "id": "flaregamesGmbH.RoyalRevolt",
+        "method": "Appx"
+      },
+      {
+        "id": "Sidia.LiveWallpaper",
+        "method": "Appx"
+      },
+      {
+        "id": "SlingTV",
+        "method": "Appx"
+      },
+      {
+        "id": "SpotifyAB.SpotifyMusic",
+        "method": "Appx"
+      },
+      {
+        "id": "BytedancePte.Ltd.TikTok",
+        "method": "Appx"
+      },
+      {
+        "id": "TuneInRadio",
+        "method": "Appx"
+      },
+      {
+        "id": "WinZipUniversal",
+        "method": "Appx"
+      }
+    ],
+    "gaming": [
+      {
+        "id": "Microsoft.XboxApp",
+        "method": "Appx"
+      },
+      {
+        "id": "Microsoft.GamingApp",
+        "method": "Appx"
+      },
+      {
+        "id": "Microsoft.Xbox.TCUI",
+        "method": "Appx"
+      },
+      {
+        "id": "Microsoft.XboxGameOverlay",
+        "method": "Appx"
+      },
+      {
+        "id": "Microsoft.XboxGamingOverlay",
+        "method": "Appx"
+      },
+      {
+        "id": "Microsoft.XboxIdentityProvider",
+        "method": "Appx"
+      },
+      {
+        "id": "Microsoft.XboxSpeechToTextOverlay",
+        "method": "Appx"
+      }
+    ],
+    "hp": [
+      {
+        "id": "AD2F1837.HPAIExperienceCenter",
+        "method": "Appx"
+      },
+      {
+        "id": "AD2F1837.HPConnectedMusic",
+        "method": "Appx"
+      },
+      {
+        "id": "AD2F1837.HPConnectedPhotopoweredbySnapfish",
+        "method": "Appx"
+      },
+      {
+        "id": "AD2F1837.HPDesktopSupportUtilities",
+        "method": "Appx"
+      },
+      {
+        "id": "AD2F1837.HPEasyClean",
+        "method": "Appx"
+      },
+      {
+        "id": "AD2F1837.HPFileViewer",
+        "method": "Appx"
+      },
+      {
+        "id": "AD2F1837.HPJumpStarts",
+        "method": "Appx"
+      },
+      {
+        "id": "AD2F1837.HPPCHardwareDiagnosticsWindows",
+        "method": "Appx"
+      },
+      {
+        "id": "AD2F1837.HPPowerManager",
+        "method": "Appx"
+      },
+      {
+        "id": "AD2F1837.HPPrinterControl",
+        "method": "Appx"
+      },
+      {
+        "id": "AD2F1837.HPPrivacySettings",
+        "method": "Appx"
+      },
+      {
+        "id": "AD2F1837.HPQuickDrop",
+        "method": "Appx"
+      },
+      {
+        "id": "AD2F1837.HPQuickTouch",
+        "method": "Appx"
+      },
+      {
+        "id": "AD2F1837.HPRegistration",
+        "method": "Appx"
+      },
+      {
+        "id": "AD2F1837.HPSupportAssistant",
+        "method": "Appx"
+      },
+      {
+        "id": "AD2F1837.HPSureShieldAI",
+        "method": "Appx"
+      },
+      {
+        "id": "AD2F1837.HPSystemInformation",
+        "method": "Appx"
+      },
+      {
+        "id": "AD2F1837.HPWelcome",
+        "method": "Appx"
+      },
+      {
+        "id": "AD2F1837.HPWorkWell",
+        "method": "Appx"
+      },
+      {
+        "id": "AD2F1837.myHP",
+        "method": "Appx"
+      }
+    ]
+  }
+}

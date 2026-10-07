@@ -16,11 +16,12 @@ import {
 import {
   Rocket,
   Trash2,
+  Package,
   Settings,
   Info,
 } from "lucide-react"
 
-type Page = 'setup' | 'cleanup' | 'settings' | 'about';
+type Page = 'setup' | 'cleanup' | 'install' | 'settings' | 'about';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>('setup');
@@ -55,6 +56,13 @@ function App() {
                     Cleanup
                   </SidebarNavItem>
                   <SidebarNavItem
+                    active={currentPage === 'install'}
+                    onClick={() => setCurrentPage('install')}
+                  >
+                    <Package className="mr-2 h-4 w-4" />
+                    Install
+                  </SidebarNavItem>
+                  <SidebarNavItem
                     active={currentPage === 'settings'}
                     onClick={() => setCurrentPage('settings')}
                   >
@@ -72,7 +80,7 @@ function App() {
               </SidebarContent>
             </Sidebar>
 
-            <div className="flex-1 p-8 bg-background">
+            <div className="flex-1 min-h-0 overflow-y-auto p-8 bg-background">
               <PageContent currentPage={currentPage} />
             </div>
           </div>
