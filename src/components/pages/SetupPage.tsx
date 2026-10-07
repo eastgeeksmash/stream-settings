@@ -144,7 +144,7 @@ const actions: Action[] = [
     label: 'Bing検索を無効化',
     success: 'Bing検索の無効化が完了しました',
     failure: 'Bing検索の無効化に失敗しました',
-    description: 'スタートの検索から、ウェブ検索とCortanaを外します。',
+    description: 'スタートメニューのウェブ検索とCortanaを外します。',
     batch: true,
     defaultSelected: true,
   },

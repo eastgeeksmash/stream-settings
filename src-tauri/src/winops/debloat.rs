@@ -4,7 +4,14 @@ use std::process::{Command, Output};
 
 use serde::Deserialize;
 
-use super::registry::{set_hkcu_dword, set_hklm_dword};
+use windows::Win32::Foundation::{LPARAM, WPARAM};
+use windows::Win32::UI::WindowsAndMessaging::{
+    SendMessageTimeoutW, HWND_BROADCAST, SMTO_ABORTIFHUNG, WM_SETTINGCHANGE,
+};
+
+use super::registry::{
+    set_hkcu_dword, set_hkcu_dword_result, set_hklm_dword, set_hklm_dword_result, RegistryWriteFailure,
+};
 
 const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
@@ -236,52 +243,84 @@ pub fn disable_recall_and_click_to_do() -> Result<(), String> {
     )
 }
 
+const WIDGET_SETTINGS: &[DwordSetting] = &[
+    hklm(r"SOFTWARE\Policies\Microsoft\Dsh", "DisableWidgetsBoard", 1),
+    hklm(r"SOFTWARE\Policies\Microsoft\Dsh", "AllowNewsAndInterests", 0),
+    hkcu(
+        r"Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
+        "TaskbarDa",
+        0,
+    ),
+];
+
+const BING_SETTINGS: &[DwordSetting] = &[
+    hkcu(
+        r"Software\Microsoft\Windows\CurrentVersion\Search",
+        "BingSearchEnabled",
+        0,
+    ),
+    hkcu(
+        r"Software\Microsoft\Windows\CurrentVersion\Search",
+        "CortanaConsent",
+        0,
+    ),
+    hkcu(
+        r"Software\Policies\Microsoft\Windows\Explorer",
+        "DisableSearchBoxSuggestions",
+        1,
+    ),
+    hklm(
+        r"SOFTWARE\Policies\Microsoft\Windows\Windows Search",
+        "AllowCortana",
+        0,
+    ),
+    hklm(
+        r"SOFTWARE\Policies\Microsoft\Windows\Windows Search",
+        "CortanaConsent",
+        0,
+    ),
+    hklm(
+        r"SOFTWARE\Policies\Microsoft\Windows\Windows Search",
+        "BingSearchEnabled",
+        0,
+    ),
+    hklm(
+        r"SOFTWARE\Policies\Microsoft\Windows\Windows Search",
+        "ConnectedSearchUseWeb",
+        0,
+    ),
+    hklm(
+        r"SOFTWARE\Policies\Microsoft\Windows\Windows Search",
+        "AllowCloudSearch",
+        0,
+    ),
+    hklm(
+        r"SOFTWARE\Policies\Microsoft\Windows\Windows Search",
+        "DisableWebSearch",
+        1,
+    ),
+];
+
 pub fn disable_widgets() -> Result<(), String> {
-    apply_settings(
-        &[
-            hklm(r"SOFTWARE\Policies\Microsoft\Dsh", "AllowNewsAndInterests", 0),
-            hklm(r"SOFTWARE\Policies\Microsoft\Dsh", "DisableWidgetsBoard", 1),
-            hkcu(
-                r"Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
-                "TaskbarDa",
-                0,
-            ),
-        ],
-        WIDGETS_OPERATION,
-    )
+    let results = apply_each(WIDGET_SETTINGS, WIDGETS_OPERATION);
+    if setting_applied(&results, "DisableWidgetsBoard", r"SOFTWARE\Policies\Microsoft\Dsh") {
+        notify_policy_changed();
+        return Ok(());
+    }
+    Err(first_failure_message(&results, WIDGETS_OPERATION))
 }
 
 pub fn disable_bing_search() -> Result<(), String> {
-    apply_settings(
-        &[
-            hkcu(
-                r"Software\Policies\Microsoft\Windows\Explorer",
-                "DisableSearchBoxSuggestions",
-                1,
-            ),
-            hklm(
-                r"SOFTWARE\Policies\Microsoft\Windows\Windows Search",
-                "AllowCortana",
-                0,
-            ),
-            hklm(
-                r"SOFTWARE\Policies\Microsoft\Windows\Windows Search",
-                "CortanaConsent",
-                0,
-            ),
-            hklm(
-                r"SOFTWARE\Policies\Microsoft\Windows\Windows Search",
-                "BingSearchEnabled",
-                0,
-            ),
-            hklm(
-                r"SOFTWARE\Policies\Microsoft\Windows\Windows Search",
-                "DisableWebSearch",
-                1,
-            ),
-        ],
-        BING_OPERATION,
-    )
+    let results = apply_each(BING_SETTINGS, BING_OPERATION);
+    if setting_applied(
+        &results,
+        "BingSearchEnabled",
+        r"Software\Microsoft\Windows\CurrentVersion\Search",
+    ) {
+        notify_policy_changed();
+        return Ok(());
+    }
+    Err(first_failure_message(&results, BING_OPERATION))
 }
 
 pub fn disable_fast_startup() -> Result<(), String> {
@@ -344,6 +383,12 @@ pub fn remove_debloat_group(dir: &Path, group: &str, winget: Option<&Path>) -> R
     Err(format!("{APP_REMOVAL_OPERATION}: {}", output_detail(&output)))
 }
 
+struct SettingOutcome {
+    subkey: &'static str,
+    name: &'static str,
+    result: Result<(), RegistryWriteFailure>,
+}
+
 fn apply_settings(settings: &[DwordSetting], operation: &str) -> Result<(), String> {
     for setting in settings {
         match setting.hive {
@@ -354,7 +399,53 @@ fn apply_settings(settings: &[DwordSetting], operation: &str) -> Result<(), Stri
     Ok(())
 }
 
-fn hkcu(subkey: &'static str, name: &'static str, value: u32) -> DwordSetting {
+fn apply_each(settings: &[DwordSetting], operation: &str) -> Vec<SettingOutcome> {
+    settings
+        .iter()
+        .map(|setting| SettingOutcome {
+            subkey: setting.subkey,
+            name: setting.name,
+            result: match setting.hive {
+                Hive::Hkcu => {
+                    set_hkcu_dword_result(setting.subkey, setting.name, setting.value, operation)
+                }
+                Hive::Hklm => {
+                    set_hklm_dword_result(setting.subkey, setting.name, setting.value, operation)
+                }
+            },
+        })
+        .collect()
+}
+
+fn setting_applied(results: &[SettingOutcome], name: &str, subkey: &str) -> bool {
+    results
+        .iter()
+        .any(|result| result.name == name && result.subkey == subkey && result.result.is_ok())
+}
+
+fn first_failure_message(results: &[SettingOutcome], operation: &str) -> String {
+    results
+        .iter()
+        .find_map(|result| result.result.as_ref().err().map(|failure| failure.message.clone()))
+        .unwrap_or_else(|| format!("{operation}: 設定を書き込めませんでした。"))
+}
+
+fn notify_policy_changed() {
+    let parameter: Vec<u16> = "Policy".encode_utf16().chain(std::iter::once(0)).collect();
+    unsafe {
+        let _ = SendMessageTimeoutW(
+            HWND_BROADCAST,
+            WM_SETTINGCHANGE,
+            WPARAM(0),
+            LPARAM(parameter.as_ptr() as isize),
+            SMTO_ABORTIFHUNG,
+            1000,
+            None,
+        );
+    }
+}
+
+const fn hkcu(subkey: &'static str, name: &'static str, value: u32) -> DwordSetting {
     DwordSetting {
         hive: Hive::Hkcu,
         subkey,
@@ -363,7 +454,7 @@ fn hkcu(subkey: &'static str, name: &'static str, value: u32) -> DwordSetting {
     }
 }
 
-fn hklm(subkey: &'static str, name: &'static str, value: u32) -> DwordSetting {
+const fn hklm(subkey: &'static str, name: &'static str, value: u32) -> DwordSetting {
     DwordSetting {
         hive: Hive::Hklm,
         subkey,
@@ -430,6 +521,23 @@ mod tests {
             )
             .name
         );
+    }
+
+    #[test]
+    fn widget_disable_keeps_board_policy_when_other_values_are_blocked() {
+        assert!(WIDGET_SETTINGS.iter().any(|setting| {
+            setting.name == "DisableWidgetsBoard" && setting.subkey.ends_with(r"\Dsh")
+        }));
+        assert!(WIDGET_SETTINGS.iter().any(|setting| setting.name == "TaskbarDa"));
+    }
+
+    #[test]
+    fn bing_disable_includes_start_menu_web_search() {
+        assert!(BING_SETTINGS.iter().any(|setting| {
+            setting.name == "BingSearchEnabled"
+                && setting.subkey == r"Software\Microsoft\Windows\CurrentVersion\Search"
+                && setting.value == 0
+        }));
     }
 
     #[test]
