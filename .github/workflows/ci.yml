@@ -1,0 +1,53 @@
+name: check
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: cache Rust build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: cargo test
+        run: cargo test --manifest-path src-tauri/Cargo.toml --locked
+
+  build:
+    name: Build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: install frontend dependencies
+        run: bun install --frozen-lockfile
+
+      - name: build frontend
+        run: bun run build
+
+      - name: setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: cache Rust build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: cargo build
+        run: cargo build --manifest-path src-tauri/Cargo.toml --locked

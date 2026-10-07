@@ -62,6 +62,34 @@ pub fn set_hkcu_sz(subkey: &str, name: &str, value: &str, operation: &str) -> Re
     set_value(HKEY_CURRENT_USER, subkey, name, REG_SZ, &data, operation)
 }
 
+pub fn set_hkcu_default_sz(subkey: &str, value: &str, operation: &str) -> Result<(), String> {
+    set_hkcu_sz(subkey, "", value, operation)
+}
+
+pub fn get_hkcu_default_sz(subkey: &str, operation: &str) -> Result<Option<String>, String> {
+    let key = match open_hkcu(subkey, KEY_READ, operation) {
+        Ok(key) => key,
+        Err(_) => return Ok(None),
+    };
+    let result = query_sz(key, "");
+    unsafe {
+        let _ = RegCloseKey(key);
+    }
+    result
+}
+
+pub fn enum_hkcu_subkeys(subkey: &str, operation: &str) -> Result<Vec<String>, String> {
+    let key = match open_hkcu(subkey, KEY_READ, operation) {
+        Ok(key) => key,
+        Err(_) => return Ok(Vec::new()),
+    };
+    let names = enum_subkeys(key);
+    unsafe {
+        let _ = RegCloseKey(key);
+    }
+    Ok(names)
+}
+
 fn set_dword(
     root: HKEY,
     subkey: &str,
@@ -164,8 +192,16 @@ pub fn delete_hklm_value(subkey: &str, name: &str, operation: &str) -> Result<()
 
 pub fn enum_hklm_subkeys(subkey: &str, operation: &str) -> Result<Vec<String>, String> {
     let key = open_hklm(subkey, KEY_READ, operation)?;
+    let names = enum_subkeys(key);
+    unsafe {
+        let _ = RegCloseKey(key);
+    }
+    Ok(names)
+}
+
+fn enum_subkeys(key: HKEY) -> Vec<String> {
     let mut names = Vec::new();
-    for index in 0..512 {
+    for index in 0..4096 {
         let mut name = [0u16; 256];
         let mut name_len = name.len() as u32;
         let status = unsafe {
@@ -189,10 +225,7 @@ pub fn enum_hklm_subkeys(subkey: &str, operation: &str) -> Result<Vec<String>, S
             }
         }
     }
-    unsafe {
-        let _ = RegCloseKey(key);
-    }
-    Ok(names)
+    names
 }
 
 pub fn get_hklm_sz(subkey: &str, name: &str, operation: &str) -> Result<Option<String>, String> {
@@ -229,11 +262,28 @@ fn open_hklm(
     access: windows::Win32::System::Registry::REG_SAM_FLAGS,
     operation: &str,
 ) -> Result<HKEY, String> {
+    open_key(HKEY_LOCAL_MACHINE, subkey, access, operation)
+}
+
+fn open_hkcu(
+    subkey: &str,
+    access: windows::Win32::System::Registry::REG_SAM_FLAGS,
+    operation: &str,
+) -> Result<HKEY, String> {
+    open_key(HKEY_CURRENT_USER, subkey, access, operation)
+}
+
+fn open_key(
+    root: HKEY,
+    subkey: &str,
+    access: windows::Win32::System::Registry::REG_SAM_FLAGS,
+    operation: &str,
+) -> Result<HKEY, String> {
     let subkey: Vec<u16> = subkey.encode_utf16().chain(std::iter::once(0)).collect();
     let mut key = HKEY::default();
     let status = unsafe {
         RegOpenKeyExW(
-            HKEY_LOCAL_MACHINE,
+            root,
             windows::core::PCWSTR(subkey.as_ptr()),
             Some(0),
             access,

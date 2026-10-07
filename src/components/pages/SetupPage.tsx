@@ -1,13 +1,16 @@
 import type React from 'react';
 import { Button } from '../ui/button';
-import { invoke } from '@tauri-apps/api/core';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import Loader2 from 'lucide-react/dist/esm/icons/loader-2';
 import { ActionTooltip } from '@/components/action-tooltip';
 import { invokeAction, showErrorToast, showSuccessToast } from '@/lib/invoke';
 
+const actionSpinner = <Loader2 className="mr-2 h-4 w-4 animate-spin" />;
+
 type Action = {
+  id?: string;
   command: string;
+  args?: Record<string, unknown>;
   label: string;
   success: string;
   failure: string;
@@ -16,13 +19,7 @@ type Action = {
   defaultSelected?: boolean;
 };
 
-type NetworkAdapter = {
-  id: string;
-  name: string;
-  description: string;
-  dhcp_enabled: boolean;
-  connected: boolean;
-};
+const actionKey = (action: Action) => action.id ?? action.command;
 
 const actions: Action[] = [
   {
@@ -40,15 +37,6 @@ const actions: Action[] = [
     success: '通知センターの無効化が完了しました',
     failure: '通知センターの無効化に失敗しました',
     description: '画面の端に出る通知を止めます。配信中の割り込みを減らせます。',
-    batch: true,
-    defaultSelected: true,
-  },
-  {
-    command: 'make_network_private',
-    label: '全ネットワークをプライベート化',
-    success: 'ネットワークのプライベート化が完了しました',
-    failure: 'ネットワークのプライベート化に失敗しました',
-    description: 'このPCのネットワークを、会場で機材とつなぎやすい設定にします。',
     batch: true,
     defaultSelected: true,
   },
@@ -85,6 +73,118 @@ const actions: Action[] = [
     success: 'Windows Updateの延期が完了しました',
     failure: 'Windows Updateの延期に失敗しました',
     description: 'Windowsの更新を後回しにします。配信中に突然の再起動が入りにくくなります。',
+    batch: true,
+    defaultSelected: true,
+  },
+  {
+    command: 'disable_call_ducking',
+    label: '通話時の音量下げを無効化',
+    success: '通話時の音量下げ無効化が完了しました',
+    failure: '通話時の音量下げ無効化に失敗しました',
+    description: '通話を始めたときに、ほかの音が小さくなるのを止めます。配信の音量を保ちます。',
+    batch: true,
+    defaultSelected: true,
+  },
+  {
+    command: 'set_no_sounds_scheme',
+    label: 'Windowsサウンドをサウンドなしにする',
+    success: 'Windowsサウンドをサウンドなしに変更しました',
+    failure: 'Windowsサウンドの変更に失敗しました',
+    description: 'Windowsの効果音を止めます。配信に通知音が入りにくくなります。',
+    batch: true,
+    defaultSelected: true,
+  },
+  {
+    command: 'disable_telemetry',
+    label: 'テレメトリと診断データを無効化',
+    success: 'テレメトリと診断データの無効化が完了しました',
+    failure: 'テレメトリの無効化に失敗しました',
+    description: '利用状況の送信と、広告向けの診断データを止めます。',
+    batch: true,
+    defaultSelected: true,
+  },
+  {
+    command: 'disable_suggestions',
+    label: 'ヒント・提案・広告を無効化',
+    success: 'ヒント・提案・広告の無効化が完了しました',
+    failure: 'ヒントと提案の無効化に失敗しました',
+    description: 'スタートや設定に出る提案と広告を止めます。',
+    batch: true,
+    defaultSelected: true,
+  },
+  {
+    command: 'disable_copilot',
+    label: 'Copilotを無効化',
+    success: 'Copilotの無効化が完了しました',
+    failure: 'Copilotの無効化に失敗しました',
+    description: 'Copilot のボタンと機能を止めます。',
+    batch: true,
+    defaultSelected: true,
+  },
+  {
+    command: 'disable_recall_and_click_to_do',
+    label: 'RecallとClick to Doを無効化',
+    success: 'RecallとClick to Doの無効化が完了しました',
+    failure: 'RecallとClick to Doの無効化に失敗しました',
+    description: '画面の記録と、選択内容のAI分析を止めます。',
+    batch: true,
+    defaultSelected: true,
+  },
+  {
+    command: 'disable_widgets',
+    label: 'ウィジェットを無効化',
+    success: 'ウィジェットの無効化が完了しました',
+    failure: 'ウィジェットの無効化に失敗しました',
+    description: 'タスクバーのウィジェットと、その掲示板を止めます。',
+    batch: true,
+    defaultSelected: true,
+  },
+  {
+    command: 'disable_bing_search',
+    label: 'Bing検索を無効化',
+    success: 'Bing検索の無効化が完了しました',
+    failure: 'Bing検索の無効化に失敗しました',
+    description: 'スタートの検索から、ウェブ検索とCortanaを外します。',
+    batch: true,
+    defaultSelected: true,
+  },
+  {
+    command: 'disable_fast_startup',
+    label: '高速スタートアップを無効化',
+    success: '高速スタートアップの無効化が完了しました',
+    failure: '高速スタートアップの無効化に失敗しました',
+    description: 'シャットダウンを完全な終了にします。次回起動が安定しやすくなります。',
+    batch: true,
+    defaultSelected: true,
+  },
+  {
+    command: 'disable_storage_sense',
+    label: 'Storage Senseを無効化',
+    success: 'Storage Senseの無効化が完了しました',
+    failure: 'Storage Senseの無効化に失敗しました',
+    description: 'ダウンロードフォルダなどを自動で消さないようにします。',
+    batch: true,
+    defaultSelected: true,
+  },
+  {
+    id: 'apps-default',
+    command: 'remove_debloat_group',
+    args: { group: 'default' },
+    label: '標準の不要アプリを削除',
+    success: '標準の不要アプリの削除が完了しました',
+    failure: '不要アプリの削除に失敗しました',
+    description: 'プリインストールの不要アプリを削除します。入っていないものはそのままにします。反映にはサインアウトが必要な場合があります。',
+    batch: true,
+    defaultSelected: true,
+  },
+  {
+    id: 'apps-gaming',
+    command: 'remove_debloat_group',
+    args: { group: 'gaming' },
+    label: 'XboxとGame Barを削除',
+    success: 'XboxとGame Barの削除が完了しました',
+    failure: '不要アプリの削除に失敗しました',
+    description: 'Xbox と Game Bar を削除します。配信中のオーバーレイが出にくくなります。',
     batch: true,
     defaultSelected: true,
   },
@@ -127,11 +227,13 @@ const actions: Action[] = [
     description: '隠していたアイコンと、画面下のバーをまた表示します。',
   },
   {
-    command: 'optimize_ndi_settings',
-    label: 'NDI/OMT向けに最適化',
-    success: 'NDI/OMT向け最適化が完了しました',
-    failure: 'NDI/OMT向け最適化に失敗しました',
-    description: '映像を送る回線の省電力と優先制御を止めます。途切れにくくします。',
+    id: 'apps-hp',
+    command: 'remove_debloat_group',
+    args: { group: 'hp' },
+    label: 'HPのプリインストールアプリを削除',
+    success: 'HPのプリインストールアプリの削除が完了しました',
+    failure: '不要アプリの削除に失敗しました',
+    description: 'HP製PCに入っている追加アプリを削除します。HP以外では何も消えません。',
     batch: true,
   },
   {
@@ -154,7 +256,7 @@ const actions: Action[] = [
 
 export const SetupPage: React.FC = () => {
   const batchable = useMemo(() => actions.filter((action) => action.batch), []);
-  const batchableCommands = useMemo(() => batchable.map((action) => action.command), [batchable]);
+  const batchableKeys = useMemo(() => batchable.map(actionKey), [batchable]);
   const recommendedActions = useMemo(
     () => actions.filter((action) => action.defaultSelected),
     []
@@ -165,20 +267,12 @@ export const SetupPage: React.FC = () => {
   );
   const [loadingCommand, setLoadingCommand] = useState<string | null>(null);
   const [selected, setSelected] = useState<string[]>(() =>
-    actions.filter((action) => action.defaultSelected).map((action) => action.command)
+    actions.filter((action) => action.defaultSelected).map(actionKey)
   );
-  const [adapters, setAdapters] = useState<NetworkAdapter[]>([]);
+  const selectedSet = useMemo(() => new Set(selected), [selected]);
   const selectAllRef = useRef<HTMLInputElement>(null);
-  const allSelected = batchableCommands.length > 0 && batchableCommands.every((command) => selected.includes(command));
-  const someSelected = batchableCommands.some((command) => selected.includes(command));
-
-  useEffect(() => {
-    invoke<NetworkAdapter[]>('list_network_adapters')
-      .then(setAdapters)
-      .catch((error) => {
-        console.error(error);
-      });
-  }, []);
+  const allSelected = batchableKeys.length > 0 && batchableKeys.every((key) => selectedSet.has(key));
+  const someSelected = batchableKeys.some((key) => selectedSet.has(key));
 
   useEffect(() => {
     if (selectAllRef.current) {
@@ -186,19 +280,19 @@ export const SetupPage: React.FC = () => {
     }
   }, [allSelected, someSelected]);
 
-  const toggleSelected = (command: string, checked: boolean) => {
+  const toggleSelected = (key: string, checked: boolean) => {
     setSelected((current) =>
-      checked ? [...current, command] : current.filter((item) => item !== command)
+      checked ? [...current, key] : current.filter((item) => item !== key)
     );
   };
 
   const toggleAll = (checked: boolean) => {
-    setSelected(checked ? batchableCommands : []);
+    setSelected(checked ? batchableKeys : []);
   };
 
   const run = async (action: Action) => {
-    setLoadingCommand(action.command);
-    const result = await invokeAction(action.command, action.failure);
+    setLoadingCommand(actionKey(action));
+    const result = await invokeAction(action.command, action.failure, action.args);
     if (result.ok) {
       showSuccessToast(action.success);
     } else {
@@ -208,7 +302,7 @@ export const SetupPage: React.FC = () => {
   };
 
   const runSelected = async () => {
-    const targets = actions.filter((action) => selected.includes(action.command));
+    const targets = actions.filter((action) => selectedSet.has(actionKey(action)));
     if (targets.length === 0) {
       showErrorToast('まとめて実行する項目を選択してください。');
       return;
@@ -217,7 +311,7 @@ export const SetupPage: React.FC = () => {
     setLoadingCommand('batch');
     const failures: string[] = [];
     for (const action of targets) {
-      const result = await invokeAction(action.command, action.failure);
+      const result = await invokeAction(action.command, action.failure, action.args);
       if (!result.ok) {
         failures.push(result.message);
       }
@@ -226,37 +320,6 @@ export const SetupPage: React.FC = () => {
       showSuccessToast('選択した最適化項目の実行が完了しました');
     } else {
       showErrorToast(failures.join('\n'));
-    }
-    setLoadingCommand(null);
-  };
-
-  const enableAdapterDhcp = async (adapter: NetworkAdapter) => {
-    setLoadingCommand(adapter.id);
-    const result = await invokeAction('enable_dhcp', 'DHCP設定の変更に失敗しました', {
-      adapterId: adapter.id,
-    });
-    if (result.ok) {
-      showSuccessToast(`${adapter.name} をDHCPに変更しました`);
-      const next = await invoke<NetworkAdapter[]>('list_network_adapters').catch(() => adapters);
-      setAdapters(next);
-    } else {
-      showErrorToast(result.message);
-    }
-    setLoadingCommand(null);
-  };
-
-  const enableConnectedDhcp = async () => {
-    setLoadingCommand('dhcp-all');
-    const result = await invokeAction(
-      'enable_dhcp_for_connected_adapters',
-      'DHCP設定の変更に失敗しました'
-    );
-    if (result.ok) {
-      showSuccessToast('接続中アダプターのDHCP設定が完了しました');
-      const next = await invoke<NetworkAdapter[]>('list_network_adapters').catch(() => adapters);
-      setAdapters(next);
-    } else {
-      showErrorToast(result.message);
     }
     setLoadingCommand(null);
   };
@@ -288,14 +351,15 @@ export const SetupPage: React.FC = () => {
   );
 
   const renderAction = (action: Action) => {
-    const loading = loadingCommand === action.command || loadingCommand === 'batch';
+    const key = actionKey(action);
+    const loading = loadingCommand === key || loadingCommand === 'batch';
     return renderRow(
-      action.command,
+      key,
       action.batch
         ? renderCheckbox(
-            selected.includes(action.command),
+            selectedSet.has(key),
             (checked) => {
-              toggleSelected(action.command, checked);
+              toggleSelected(key, checked);
             },
             `${action.label}をまとめて実行に含める`
           )
@@ -310,7 +374,7 @@ export const SetupPage: React.FC = () => {
             void run(action);
           }}
         >
-          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {loading && actionSpinner}
           {action.label}
         </Button>
       </ActionTooltip>
@@ -334,7 +398,7 @@ export const SetupPage: React.FC = () => {
                 void runSelected();
               }}
             >
-              {loadingCommand === 'batch' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {loadingCommand === 'batch' && actionSpinner}
               選択した項目をまとめて実行
             </Button>
           </ActionTooltip>
@@ -350,51 +414,6 @@ export const SetupPage: React.FC = () => {
           </ActionTooltip>
         )}
         {extraActions.map(renderAction)}
-        {renderRow(
-          'dhcp-all',
-          null,
-          <ActionTooltip text="いまつながっている回線を、会場のネットワークから自動で設定を受け取るようにします。">
-            <Button
-              type="button"
-              className="w-full min-w-0"
-              variant="default"
-              disabled={loadingCommand !== null}
-              onClick={() => {
-                void enableConnectedDhcp();
-              }}
-            >
-              {loadingCommand === 'dhcp-all' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              接続中アダプターをDHCPにする
-            </Button>
-          </ActionTooltip>
-        )}
-        {adapters.map((adapter) =>
-          renderRow(
-            adapter.id,
-            null,
-            <ActionTooltip
-              text={
-                adapter.dhcp_enabled
-                  ? `「${adapter.name}」は、すでに会場のネットワークから自動で設定を受け取る状態です。`
-                  : `「${adapter.name}」を、会場のネットワークから自動で設定を受け取るようにします。`
-              }
-            >
-              <Button
-                type="button"
-                className="w-full min-w-0"
-                variant="default"
-                disabled={loadingCommand !== null || adapter.dhcp_enabled}
-                onClick={() => {
-                  void enableAdapterDhcp(adapter);
-                }}
-              >
-                {loadingCommand === adapter.id && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {adapter.name} をDHCPにする
-                {adapter.dhcp_enabled ? ' (設定済み)' : ''}
-              </Button>
-            </ActionTooltip>
-          )
-        )}
       </ul>
     </>
   );

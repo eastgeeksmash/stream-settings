@@ -13,14 +13,21 @@ import {
   SidebarNav,
   SidebarNavItem,
 } from "@/components/ui/sidebar"
-import {
-  Rocket,
-  Trash2,
-  Settings,
-  Info,
-} from "lucide-react"
+import Rocket from "lucide-react/dist/esm/icons/rocket";
+import Network from "lucide-react/dist/esm/icons/network";
+import Trash2 from "lucide-react/dist/esm/icons/trash-2";
+import Package from "lucide-react/dist/esm/icons/package";
+import Settings from "lucide-react/dist/esm/icons/settings";
+import Info from "lucide-react/dist/esm/icons/info";
 
-type Page = 'setup' | 'cleanup' | 'settings' | 'about';
+const setupNavIcon = <Rocket className="mr-2 h-4 w-4" />;
+const networkNavIcon = <Network className="mr-2 h-4 w-4" />;
+const cleanupNavIcon = <Trash2 className="mr-2 h-4 w-4" />;
+const installNavIcon = <Package className="mr-2 h-4 w-4" />;
+const settingsNavIcon = <Settings className="mr-2 h-4 w-4" />;
+const aboutNavIcon = <Info className="mr-2 h-4 w-4" />;
+
+type Page = 'setup' | 'network' | 'cleanup' | 'install' | 'settings' | 'about';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>('setup');
@@ -44,35 +51,49 @@ function App() {
                     active={currentPage === 'setup'}
                     onClick={() => setCurrentPage('setup')}
                   >
-                    <Rocket className="mr-2 h-4 w-4" />
+                    {setupNavIcon}
                     Setup
+                  </SidebarNavItem>
+                  <SidebarNavItem
+                    active={currentPage === 'network'}
+                    onClick={() => setCurrentPage('network')}
+                  >
+                    {networkNavIcon}
+                    Network
                   </SidebarNavItem>
                   <SidebarNavItem
                     active={currentPage === 'cleanup'}
                     onClick={() => setCurrentPage('cleanup')}
                   >
-                    <Trash2 className="mr-2 h-4 w-4" />
+                    {cleanupNavIcon}
                     Cleanup
+                  </SidebarNavItem>
+                  <SidebarNavItem
+                    active={currentPage === 'install'}
+                    onClick={() => setCurrentPage('install')}
+                  >
+                    {installNavIcon}
+                    Install
                   </SidebarNavItem>
                   <SidebarNavItem
                     active={currentPage === 'settings'}
                     onClick={() => setCurrentPage('settings')}
                   >
-                    <Settings className="mr-2 h-4 w-4" />
+                    {settingsNavIcon}
                     Settings
                   </SidebarNavItem>
                   <SidebarNavItem
                     active={currentPage === 'about'}
                     onClick={() => setCurrentPage('about')}
                   >
-                    <Info className="mr-2 h-4 w-4" />
+                    {aboutNavIcon}
                     About
                   </SidebarNavItem>
                 </SidebarNav>
               </SidebarContent>
             </Sidebar>
 
-            <div className="flex-1 p-8 bg-background">
+            <div className="flex-1 min-h-0 overflow-y-auto p-8 bg-background">
               <PageContent currentPage={currentPage} />
             </div>
           </div>

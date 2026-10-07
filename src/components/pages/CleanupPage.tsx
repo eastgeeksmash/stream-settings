@@ -1,9 +1,11 @@
 import type React from 'react';
 import { Button } from '../ui/button';
 import { useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import Loader2 from 'lucide-react/dist/esm/icons/loader-2';
 import { ActionTooltip } from '@/components/action-tooltip';
 import { invokeAction, showErrorToast, showSuccessToast } from '@/lib/invoke';
+
+const actionSpinner = <Loader2 className="mr-2 h-4 w-4 animate-spin" />;
 
 type Action = {
   command: string;
@@ -91,7 +93,7 @@ export const CleanupPage: React.FC = () => {
                     void run(action);
                   }}
                 >
-                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {loading && actionSpinner}
                   {action.label}
                 </Button>
               </ActionTooltip>
