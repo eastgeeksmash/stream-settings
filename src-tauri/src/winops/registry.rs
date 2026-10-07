@@ -8,6 +8,10 @@ use windows::Win32::System::Registry::{
 
 use super::error::from_win32_error;
 
+pub struct RegistryWriteFailure {
+    pub message: String,
+}
+
 const NOTIFICATION_OPERATION: &str = "通知センターの無効化に失敗しました";
 
 pub struct RegistryDwordValue {
@@ -46,10 +50,28 @@ pub fn disable_windows_notifications() -> Result<(), String> {
 }
 
 pub fn set_hkcu_dword(subkey: &str, name: &str, value: u32, operation: &str) -> Result<(), String> {
-    set_dword(HKEY_CURRENT_USER, subkey, name, value, operation)
+    set_hkcu_dword_result(subkey, name, value, operation).map_err(|failure| failure.message)
 }
 
 pub fn set_hklm_dword(subkey: &str, name: &str, value: u32, operation: &str) -> Result<(), String> {
+    set_hklm_dword_result(subkey, name, value, operation).map_err(|failure| failure.message)
+}
+
+pub fn set_hkcu_dword_result(
+    subkey: &str,
+    name: &str,
+    value: u32,
+    operation: &str,
+) -> Result<(), RegistryWriteFailure> {
+    set_dword(HKEY_CURRENT_USER, subkey, name, value, operation)
+}
+
+pub fn set_hklm_dword_result(
+    subkey: &str,
+    name: &str,
+    value: u32,
+    operation: &str,
+) -> Result<(), RegistryWriteFailure> {
     set_dword(HKEY_LOCAL_MACHINE, subkey, name, value, operation)
 }
 
@@ -60,6 +82,7 @@ pub fn set_hkcu_sz(subkey: &str, name: &str, value: &str, operation: &str) -> Re
         .flat_map(u16::to_le_bytes)
         .collect();
     set_value(HKEY_CURRENT_USER, subkey, name, REG_SZ, &data, operation)
+        .map_err(|failure| failure.message)
 }
 
 pub fn set_hkcu_default_sz(subkey: &str, value: &str, operation: &str) -> Result<(), String> {
@@ -96,7 +119,7 @@ fn set_dword(
     name: &str,
     value: u32,
     operation: &str,
-) -> Result<(), String> {
+) -> Result<(), RegistryWriteFailure> {
     set_value(
         root,
         subkey,
@@ -114,7 +137,7 @@ fn set_value(
     value_type: windows::Win32::System::Registry::REG_VALUE_TYPE,
     data: &[u8],
     operation: &str,
-) -> Result<(), String> {
+) -> Result<(), RegistryWriteFailure> {
     let subkey: Vec<u16> = subkey.encode_utf16().chain(std::iter::once(0)).collect();
     let name: Vec<u16> = name.encode_utf16().chain(std::iter::once(0)).collect();
     let mut key = HKEY::default();
@@ -133,7 +156,7 @@ fn set_value(
         )
     };
     if status != ERROR_SUCCESS {
-        return Err(from_win32_error(operation, status));
+        return Err(write_failure(operation, status));
     }
 
     let status = unsafe {
@@ -150,10 +173,16 @@ fn set_value(
     }
 
     if status != ERROR_SUCCESS {
-        return Err(from_win32_error(operation, status));
+        return Err(write_failure(operation, status));
     }
 
     Ok(())
+}
+
+fn write_failure(operation: &str, status: windows::Win32::Foundation::WIN32_ERROR) -> RegistryWriteFailure {
+    RegistryWriteFailure {
+        message: from_win32_error(operation, status),
+    }
 }
 
 pub fn delete_hklm_value(subkey: &str, name: &str, operation: &str) -> Result<(), String> {

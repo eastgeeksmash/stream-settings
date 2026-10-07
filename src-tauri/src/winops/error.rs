@@ -22,7 +22,14 @@ pub fn win32_code_from_hresult(hr: i32) -> u32 {
 }
 
 pub fn detail_for_win32(code: u32) -> String {
+    detail_for_privilege(code, super::admin::is_elevated())
+}
+
+pub fn detail_for_privilege(code: u32, elevated: bool) -> String {
     match code {
+        ERROR_ACCESS_DENIED | ERROR_PRIVILEGE_NOT_HELD if elevated => {
+            "管理者として実行していますが、Windows がこの変更を拒否しました。".to_string()
+        }
         ERROR_ACCESS_DENIED | ERROR_PRIVILEGE_NOT_HELD => {
             "権限が不足しています。管理者として実行してください。".to_string()
         }
@@ -87,8 +94,12 @@ mod tests {
         let message = format_operation_error("ネットワーク設定の変更に失敗しました", 5);
         assert!(message.contains("管理者として実行"));
         assert_eq!(
-            detail_for_win32(1314),
+            detail_for_privilege(1314, false),
             "権限が不足しています。管理者として実行してください。"
+        );
+        assert_eq!(
+            detail_for_privilege(5, true),
+            "管理者として実行していますが、Windows がこの変更を拒否しました。"
         );
     }
 

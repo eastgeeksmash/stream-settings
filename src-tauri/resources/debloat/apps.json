@@ -450,6 +450,20 @@
         "id": "AD2F1837.myHP",
         "method": "Appx"
       }
+    ],
+    "widgets": [
+      {
+        "id": "Microsoft.StartExperiencesApp",
+        "method": "Appx"
+      },
+      {
+        "id": "MicrosoftWindows.Client.WebExperience",
+        "method": "Appx"
+      },
+      {
+        "id": "Microsoft.WidgetsPlatformRuntime",
+        "method": "Appx"
+      }
     ]
   }
 }

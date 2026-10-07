@@ -4,7 +4,15 @@ use std::process::{Command, Output};
 
 use serde::Deserialize;
 
-use super::registry::{set_hkcu_dword, set_hklm_dword};
+use windows::Win32::Foundation::{LPARAM, WPARAM};
+use windows::Win32::UI::WindowsAndMessaging::{
+    SendMessageTimeoutW, HWND_BROADCAST, SMTO_ABORTIFHUNG, WM_SETTINGCHANGE,
+};
+
+use super::process::terminate_processes_containing;
+use super::registry::{
+    set_hkcu_dword, set_hkcu_dword_result, set_hklm_dword, set_hklm_dword_result, RegistryWriteFailure,
+};
 
 const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
@@ -18,7 +26,7 @@ const FAST_STARTUP_OPERATION: &str = "高速スタートアップの無効化に
 const STORAGE_SENSE_OPERATION: &str = "Storage Senseの無効化に失敗しました";
 const APP_REMOVAL_OPERATION: &str = "不要アプリの削除に失敗しました";
 
-pub const DEBLOAT_GROUPS: &[&str] = &["default", "gaming", "hp"];
+pub const DEBLOAT_GROUPS: &[&str] = &["default", "gaming", "hp", "widgets"];
 const CATALOG_JSON: &str = include_str!("../../resources/debloat/apps.json");
 
 enum Hive {
@@ -43,6 +51,7 @@ struct CatalogGroups {
     default: Vec<AppEntry>,
     gaming: Vec<AppEntry>,
     hp: Vec<AppEntry>,
+    widgets: Vec<AppEntry>,
 }
 
 #[derive(Debug, Deserialize, PartialEq, Eq)]
@@ -236,52 +245,70 @@ pub fn disable_recall_and_click_to_do() -> Result<(), String> {
     )
 }
 
-pub fn disable_widgets() -> Result<(), String> {
-    apply_settings(
-        &[
-            hklm(r"SOFTWARE\Policies\Microsoft\Dsh", "AllowNewsAndInterests", 0),
-            hklm(r"SOFTWARE\Policies\Microsoft\Dsh", "DisableWidgetsBoard", 1),
-            hkcu(
-                r"Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
-                "TaskbarDa",
-                0,
-            ),
-        ],
-        WIDGETS_OPERATION,
-    )
+const BING_SETTINGS: &[DwordSetting] = &[
+    hkcu(
+        r"Software\Microsoft\Windows\CurrentVersion\Search",
+        "BingSearchEnabled",
+        0,
+    ),
+    hkcu(
+        r"Software\Microsoft\Windows\CurrentVersion\Search",
+        "CortanaConsent",
+        0,
+    ),
+    hkcu(
+        r"Software\Policies\Microsoft\Windows\Explorer",
+        "DisableSearchBoxSuggestions",
+        1,
+    ),
+    hklm(
+        r"SOFTWARE\Policies\Microsoft\Windows\Windows Search",
+        "AllowCortana",
+        0,
+    ),
+    hklm(
+        r"SOFTWARE\Policies\Microsoft\Windows\Windows Search",
+        "CortanaConsent",
+        0,
+    ),
+    hklm(
+        r"SOFTWARE\Policies\Microsoft\Windows\Windows Search",
+        "BingSearchEnabled",
+        0,
+    ),
+    hklm(
+        r"SOFTWARE\Policies\Microsoft\Windows\Windows Search",
+        "ConnectedSearchUseWeb",
+        0,
+    ),
+    hklm(
+        r"SOFTWARE\Policies\Microsoft\Windows\Windows Search",
+        "AllowCloudSearch",
+        0,
+    ),
+    hklm(
+        r"SOFTWARE\Policies\Microsoft\Windows\Windows Search",
+        "DisableWebSearch",
+        1,
+    ),
+];
+
+pub fn disable_widgets(dir: &Path) -> Result<(), String> {
+    terminate_processes_containing("Widget", WIDGETS_OPERATION);
+    remove_debloat_group(dir, "widgets", None)
 }
 
 pub fn disable_bing_search() -> Result<(), String> {
-    apply_settings(
-        &[
-            hkcu(
-                r"Software\Policies\Microsoft\Windows\Explorer",
-                "DisableSearchBoxSuggestions",
-                1,
-            ),
-            hklm(
-                r"SOFTWARE\Policies\Microsoft\Windows\Windows Search",
-                "AllowCortana",
-                0,
-            ),
-            hklm(
-                r"SOFTWARE\Policies\Microsoft\Windows\Windows Search",
-                "CortanaConsent",
-                0,
-            ),
-            hklm(
-                r"SOFTWARE\Policies\Microsoft\Windows\Windows Search",
-                "BingSearchEnabled",
-                0,
-            ),
-            hklm(
-                r"SOFTWARE\Policies\Microsoft\Windows\Windows Search",
-                "DisableWebSearch",
-                1,
-            ),
-        ],
-        BING_OPERATION,
-    )
+    let results = apply_each(BING_SETTINGS, BING_OPERATION);
+    if setting_applied(
+        &results,
+        "BingSearchEnabled",
+        r"Software\Microsoft\Windows\CurrentVersion\Search",
+    ) {
+        notify_policy_changed();
+        return Ok(());
+    }
+    Err(first_failure_message(&results, BING_OPERATION))
 }
 
 pub fn disable_fast_startup() -> Result<(), String> {
@@ -344,6 +371,12 @@ pub fn remove_debloat_group(dir: &Path, group: &str, winget: Option<&Path>) -> R
     Err(format!("{APP_REMOVAL_OPERATION}: {}", output_detail(&output)))
 }
 
+struct SettingOutcome {
+    subkey: &'static str,
+    name: &'static str,
+    result: Result<(), RegistryWriteFailure>,
+}
+
 fn apply_settings(settings: &[DwordSetting], operation: &str) -> Result<(), String> {
     for setting in settings {
         match setting.hive {
@@ -354,7 +387,53 @@ fn apply_settings(settings: &[DwordSetting], operation: &str) -> Result<(), Stri
     Ok(())
 }
 
-fn hkcu(subkey: &'static str, name: &'static str, value: u32) -> DwordSetting {
+fn apply_each(settings: &[DwordSetting], operation: &str) -> Vec<SettingOutcome> {
+    settings
+        .iter()
+        .map(|setting| SettingOutcome {
+            subkey: setting.subkey,
+            name: setting.name,
+            result: match setting.hive {
+                Hive::Hkcu => {
+                    set_hkcu_dword_result(setting.subkey, setting.name, setting.value, operation)
+                }
+                Hive::Hklm => {
+                    set_hklm_dword_result(setting.subkey, setting.name, setting.value, operation)
+                }
+            },
+        })
+        .collect()
+}
+
+fn setting_applied(results: &[SettingOutcome], name: &str, subkey: &str) -> bool {
+    results
+        .iter()
+        .any(|result| result.name == name && result.subkey == subkey && result.result.is_ok())
+}
+
+fn first_failure_message(results: &[SettingOutcome], operation: &str) -> String {
+    results
+        .iter()
+        .find_map(|result| result.result.as_ref().err().map(|failure| failure.message.clone()))
+        .unwrap_or_else(|| format!("{operation}: 設定を書き込めませんでした。"))
+}
+
+fn notify_policy_changed() {
+    let parameter: Vec<u16> = "Policy".encode_utf16().chain(std::iter::once(0)).collect();
+    unsafe {
+        let _ = SendMessageTimeoutW(
+            HWND_BROADCAST,
+            WM_SETTINGCHANGE,
+            WPARAM(0),
+            LPARAM(parameter.as_ptr() as isize),
+            SMTO_ABORTIFHUNG,
+            1000,
+            None,
+        );
+    }
+}
+
+const fn hkcu(subkey: &'static str, name: &'static str, value: u32) -> DwordSetting {
     DwordSetting {
         hive: Hive::Hkcu,
         subkey,
@@ -363,7 +442,7 @@ fn hkcu(subkey: &'static str, name: &'static str, value: u32) -> DwordSetting {
     }
 }
 
-fn hklm(subkey: &'static str, name: &'static str, value: u32) -> DwordSetting {
+const fn hklm(subkey: &'static str, name: &'static str, value: u32) -> DwordSetting {
     DwordSetting {
         hive: Hive::Hklm,
         subkey,
@@ -433,6 +512,30 @@ mod tests {
     }
 
     #[test]
+    fn widget_removal_matches_win11debloat_packages() {
+        let catalog = catalog();
+        let ids: Vec<&str> = catalog.groups.widgets.iter().map(|app| app.id.as_str()).collect();
+        assert_eq!(
+            ids,
+            [
+                "Microsoft.StartExperiencesApp",
+                "MicrosoftWindows.Client.WebExperience",
+                "Microsoft.WidgetsPlatformRuntime",
+            ]
+        );
+        assert!(catalog.groups.widgets.iter().all(|app| app.method == "Appx"));
+    }
+
+    #[test]
+    fn bing_disable_includes_start_menu_web_search() {
+        assert!(BING_SETTINGS.iter().any(|setting| {
+            setting.name == "BingSearchEnabled"
+                && setting.subkey == r"Software\Microsoft\Windows\CurrentVersion\Search"
+                && setting.value == 0
+        }));
+    }
+
+    #[test]
     fn catalog_groups_exclude_edge_and_cover_targets() {
         let catalog = catalog();
         let all = catalog
@@ -440,7 +543,8 @@ mod tests {
             .default
             .iter()
             .chain(catalog.groups.gaming.iter())
-            .chain(catalog.groups.hp.iter());
+            .chain(catalog.groups.hp.iter())
+            .chain(catalog.groups.widgets.iter());
         assert!(all.clone().all(|app| app.method == "Appx" || app.method == "WinGet"));
         assert!(all.clone().all(|app| app.id != "Microsoft.Edge" && app.id != "XPFFTQ037JWMHS"));
         assert!(catalog.groups.default.iter().any(|app| app.id == "Microsoft.BingNews"));
@@ -456,6 +560,6 @@ mod tests {
             .iter()
             .any(|app| app.id == "AD2F1837.HPSupportAssistant"));
         assert!(!catalog.groups.hp.is_empty());
-        assert_eq!(DEBLOAT_GROUPS, ["default", "gaming", "hp"]);
+        assert_eq!(DEBLOAT_GROUPS, ["default", "gaming", "hp", "widgets"]);
     }
 }
