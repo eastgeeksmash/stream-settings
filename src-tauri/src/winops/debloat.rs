@@ -9,6 +9,7 @@ use windows::Win32::UI::WindowsAndMessaging::{
     SendMessageTimeoutW, HWND_BROADCAST, SMTO_ABORTIFHUNG, WM_SETTINGCHANGE,
 };
 
+use super::process::terminate_processes_containing;
 use super::registry::{
     set_hkcu_dword, set_hkcu_dword_result, set_hklm_dword, set_hklm_dword_result, RegistryWriteFailure,
 };
@@ -25,7 +26,7 @@ const FAST_STARTUP_OPERATION: &str = "高速スタートアップの無効化に
 const STORAGE_SENSE_OPERATION: &str = "Storage Senseの無効化に失敗しました";
 const APP_REMOVAL_OPERATION: &str = "不要アプリの削除に失敗しました";
 
-pub const DEBLOAT_GROUPS: &[&str] = &["default", "gaming", "hp"];
+pub const DEBLOAT_GROUPS: &[&str] = &["default", "gaming", "hp", "widgets"];
 const CATALOG_JSON: &str = include_str!("../../resources/debloat/apps.json");
 
 enum Hive {
@@ -50,6 +51,7 @@ struct CatalogGroups {
     default: Vec<AppEntry>,
     gaming: Vec<AppEntry>,
     hp: Vec<AppEntry>,
+    widgets: Vec<AppEntry>,
 }
 
 #[derive(Debug, Deserialize, PartialEq, Eq)]
@@ -243,16 +245,6 @@ pub fn disable_recall_and_click_to_do() -> Result<(), String> {
     )
 }
 
-const WIDGET_SETTINGS: &[DwordSetting] = &[
-    hklm(r"SOFTWARE\Policies\Microsoft\Dsh", "DisableWidgetsBoard", 1),
-    hklm(r"SOFTWARE\Policies\Microsoft\Dsh", "AllowNewsAndInterests", 0),
-    hkcu(
-        r"Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
-        "TaskbarDa",
-        0,
-    ),
-];
-
 const BING_SETTINGS: &[DwordSetting] = &[
     hkcu(
         r"Software\Microsoft\Windows\CurrentVersion\Search",
@@ -301,13 +293,9 @@ const BING_SETTINGS: &[DwordSetting] = &[
     ),
 ];
 
-pub fn disable_widgets() -> Result<(), String> {
-    let results = apply_each(WIDGET_SETTINGS, WIDGETS_OPERATION);
-    if setting_applied(&results, "DisableWidgetsBoard", r"SOFTWARE\Policies\Microsoft\Dsh") {
-        notify_policy_changed();
-        return Ok(());
-    }
-    Err(first_failure_message(&results, WIDGETS_OPERATION))
+pub fn disable_widgets(dir: &Path) -> Result<(), String> {
+    terminate_processes_containing("Widget", WIDGETS_OPERATION);
+    remove_debloat_group(dir, "widgets", None)
 }
 
 pub fn disable_bing_search() -> Result<(), String> {
@@ -524,11 +512,18 @@ mod tests {
     }
 
     #[test]
-    fn widget_disable_keeps_board_policy_when_other_values_are_blocked() {
-        assert!(WIDGET_SETTINGS.iter().any(|setting| {
-            setting.name == "DisableWidgetsBoard" && setting.subkey.ends_with(r"\Dsh")
-        }));
-        assert!(WIDGET_SETTINGS.iter().any(|setting| setting.name == "TaskbarDa"));
+    fn widget_removal_matches_win11debloat_packages() {
+        let catalog = catalog();
+        let ids: Vec<&str> = catalog.groups.widgets.iter().map(|app| app.id.as_str()).collect();
+        assert_eq!(
+            ids,
+            [
+                "Microsoft.StartExperiencesApp",
+                "MicrosoftWindows.Client.WebExperience",
+                "Microsoft.WidgetsPlatformRuntime",
+            ]
+        );
+        assert!(catalog.groups.widgets.iter().all(|app| app.method == "Appx"));
     }
 
     #[test]
@@ -548,7 +543,8 @@ mod tests {
             .default
             .iter()
             .chain(catalog.groups.gaming.iter())
-            .chain(catalog.groups.hp.iter());
+            .chain(catalog.groups.hp.iter())
+            .chain(catalog.groups.widgets.iter());
         assert!(all.clone().all(|app| app.method == "Appx" || app.method == "WinGet"));
         assert!(all.clone().all(|app| app.id != "Microsoft.Edge" && app.id != "XPFFTQ037JWMHS"));
         assert!(catalog.groups.default.iter().any(|app| app.id == "Microsoft.BingNews"));
@@ -564,6 +560,6 @@ mod tests {
             .iter()
             .any(|app| app.id == "AD2F1837.HPSupportAssistant"));
         assert!(!catalog.groups.hp.is_empty());
-        assert_eq!(DEBLOAT_GROUPS, ["default", "gaming", "hp"]);
+        assert_eq!(DEBLOAT_GROUPS, ["default", "gaming", "hp", "widgets"]);
     }
 }

@@ -135,7 +135,7 @@ const actions: Action[] = [
     label: 'ウィジェットを無効化',
     success: 'ウィジェットの無効化が完了しました',
     failure: 'ウィジェットの無効化に失敗しました',
-    description: 'タスクバーのウィジェットと、その掲示板を止めます。',
+    description: 'タスクバーとロック画面のウィジェットを、関連アプリを削除して止めます。',
     batch: true,
     defaultSelected: true,
   },

@@ -46,6 +46,22 @@ pub fn collect_process_tree(entries: &[ProcessRecord], roots: &[u32]) -> Vec<u32
     result
 }
 
+pub fn terminate_processes_containing(fragment: &str, operation: &str) {
+    let Ok(entries) = snapshot_processes_with_operation(operation) else {
+        return;
+    };
+    let current_pid = unsafe { GetCurrentProcessId() };
+    let needle = fragment.to_ascii_lowercase();
+    for entry in entries {
+        if entry.pid == current_pid {
+            continue;
+        }
+        if entry.name.to_ascii_lowercase().contains(&needle) {
+            let _ = terminate_pid(entry.pid, operation);
+        }
+    }
+}
+
 pub fn terminate_process_tree_by_name(name: &str, operation: &str) -> Result<bool, String> {
     let entries = snapshot_processes_with_operation(operation)?;
     let current_pid = unsafe { GetCurrentProcessId() };

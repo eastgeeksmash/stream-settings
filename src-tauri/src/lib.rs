@@ -165,8 +165,11 @@ fn disable_recall_and_click_to_do() -> Result<(), String> {
 }
 
 #[tauri::command]
-fn disable_widgets() -> Result<(), String> {
-    winops::disable_widgets()
+async fn disable_widgets(app: tauri::AppHandle) -> Result<(), String> {
+    let dir = debloat_dir(&app)?;
+    tauri::async_runtime::spawn_blocking(move || winops::disable_widgets(&dir))
+        .await
+        .map_err(|error| format!("ウィジェットの無効化に失敗しました: {error}"))?
 }
 
 #[tauri::command]
