@@ -1,6 +1,7 @@
 import type React from 'react';
 import type { Page } from '../types/page';
 import { SetupPage } from './pages/SetupPage';
+import { NetworkPage } from './pages/NetworkPage';
 import { CleanupPage } from './pages/CleanupPage';
 import { InstallPage } from './pages/InstallPage';
 import { SettingsPage } from './pages/SettingsPage';
@@ -14,6 +15,8 @@ export const PageContent: React.FC<PageContentProps> = ({ currentPage }) => {
   switch (currentPage) {
     case 'setup':
       return <SetupPage />;
+    case 'network':
+      return <NetworkPage />;
     case 'cleanup':
       return <CleanupPage />;
     case 'install':

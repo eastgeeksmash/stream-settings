@@ -1,1 +1,1 @@
-export type Page = 'setup' | 'cleanup' | 'install' | 'settings' | 'about'; 
+export type Page = 'setup' | 'network' | 'cleanup' | 'install' | 'settings' | 'about'; 

@@ -13,18 +13,18 @@ $ErrorActionPreference = 'Continue'
 $alreadyAbsent = @(-1978335212, -1978335189)
 
 if (-not (Test-Path -LiteralPath $Catalog)) {
-    Write-Error "アプリ一覧が見つかりません: $Catalog"
+    Write-Error "Catalog not found: $Catalog"
     exit 1
 }
 
-$data = Get-Content -LiteralPath $Catalog -Raw -Encoding UTF8 | ConvertFrom-Json
+$data = Get-Content -LiteralPath $Catalog -Raw | ConvertFrom-Json
 $apps = @($data.groups.$Group)
 if ($apps.Count -eq 0 -or $null -eq $apps[0].id) {
-    Write-Error "対象のアプリグループが見つかりません: $Group"
+    Write-Error "Unknown app group: $Group"
     exit 1
 }
 
-$failures = New-Object System.Collections.Generic.List[string]
+$failures = @()
 
 foreach ($app in $apps) {
     $id = [string]$app.id
@@ -33,18 +33,18 @@ foreach ($app in $apps) {
 
     if ($method -eq 'WinGet') {
         if ([string]::IsNullOrWhiteSpace($WingetPath) -or -not (Test-Path -LiteralPath $WingetPath)) {
-            $failures.Add("${id}: winget.exe が見つかりません。")
+            $failures += ($id + ': winget.exe was not found.')
             continue
         }
         & $WingetPath uninstall --id $id -e --accept-source-agreements --disable-interactivity | Out-Host
         $code = $LASTEXITCODE
         if ($code -ne 0 -and $alreadyAbsent -notcontains $code) {
-            $failures.Add("${id}: winget uninstall が終了コード $code で失敗しました。")
+            $failures += ($id + ': winget uninstall failed with exit code ' + $code)
         }
         continue
     }
 
-    $pattern = "*$id*"
+    $pattern = '*' + $id + '*'
     try {
         $packages = @(Get-AppxPackage -AllUsers -Name $pattern -ErrorAction SilentlyContinue)
         foreach ($package in $packages) {
@@ -56,7 +56,7 @@ foreach ($app in $apps) {
         }
     }
     catch {
-        $failures.Add("${id}: $($_.Exception.Message)")
+        $failures += ($id + ': ' + $_.Exception.Message)
     }
 }
 
